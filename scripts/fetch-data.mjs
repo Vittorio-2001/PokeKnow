@@ -40,15 +40,23 @@ const NATIONAL_LIMIT = {
   'brilliant-diamond-shining-pearl': 493,
 };
 
-// Nomi italiani dei Pokédex regionali (PokéAPI li ha solo in inglese).
-const DEX_NAMES_IT = {
-  2: 'Kanto', 3: 'Johto', 4: 'Hoenn', 5: 'Sinnoh', 6: 'Sinnoh (esteso)', 7: 'Johto',
-  8: 'Unima', 9: 'Unima', 12: 'Kalos Centrale', 13: 'Kalos Costiera', 14: 'Kalos Montana',
-  15: 'Hoenn', 16: 'Alola', 17: "Mele Mele", 18: 'Akala', 19: "Ula'ula", 20: 'Poni',
-  21: 'Alola', 22: 'Mele Mele', 23: 'Akala', 24: "Ula'ula", 25: 'Poni', 26: 'Kanto',
-  27: 'Galar', 28: 'Isola dell’Armatura', 29: 'Terre Innevate', 30: 'Hisui', 31: 'Paldea',
-  32: 'Nordivia', 33: 'Mirtillo', 34: 'Luminopoli', 35: 'Iperspazio',
+// Nomi dei Pokédex regionali (PokéAPI li ha solo in inglese, e con prefissi come "Original").
+const DEX_NAMES = {
+  2: ['Kanto', 'Kanto'], 3: ['Johto', 'Johto'], 4: ['Hoenn', 'Hoenn'], 5: ['Sinnoh', 'Sinnoh'],
+  6: ['Sinnoh (esteso)', 'Sinnoh (extended)'], 7: ['Johto', 'Johto'], 8: ['Unima', 'Unova'], 9: ['Unima', 'Unova'],
+  12: ['Kalos Centrale', 'Central Kalos'], 13: ['Kalos Costiera', 'Coastal Kalos'], 14: ['Kalos Montana', 'Mountain Kalos'],
+  15: ['Hoenn', 'Hoenn'], 16: ['Alola', 'Alola'], 17: ['Mele Mele', 'Melemele'], 18: ['Akala', 'Akala'],
+  19: ["Ula'ula", "Ula'ula"], 20: ['Poni', 'Poni'], 21: ['Alola', 'Alola'], 22: ['Mele Mele', 'Melemele'],
+  23: ['Akala', 'Akala'], 24: ["Ula'ula", "Ula'ula"], 25: ['Poni', 'Poni'], 26: ['Kanto', 'Kanto'],
+  27: ['Galar', 'Galar'], 28: ['Isola dell’Armatura', 'Isle of Armor'], 29: ['Terre Innevate', 'Crown Tundra'],
+  30: ['Hisui', 'Hisui'], 31: ['Paldea', 'Paldea'], 32: ['Nordivia', 'Kitakami'], 33: ['Mirtillo', 'Blueberry'],
+  34: ['Luminopoli', 'Lumiose'], 35: ['Iperspazio', 'Hyperspace'],
 };
+
+function dexName(id) {
+  const [it, en] = DEX_NAMES[id] ?? [`#${id}`, `#${id}`];
+  return { it, en };
+}
 
 // Palette standard dei tipi, usata dalla community.
 const TYPE_COLORS = {
@@ -288,7 +296,7 @@ async function main() {
       if (introduced > g.gen) continue;
       const regional = dexRows
         .filter((d) => g.dexes.includes(Number(d.pokedex_id)))
-        .map((d) => ({ dex: DEX_NAMES_IT[d.pokedex_id] ?? `#${d.pokedex_id}`, n: Number(d.pokedex_number) }));
+        .map((d) => ({ dex: dexName(d.pokedex_id), n: Number(d.pokedex_number) }));
       const present = g.nationalLimit ? id <= g.nationalLimit : regional.length > 0;
       if (present || regional.length) games_[g.group] = regional;
     }
@@ -317,7 +325,7 @@ async function main() {
     abilities[id] = { name: abilityNames.get(id) ?? {}, desc: { it: d.it?.text ?? null, en: d.en?.text ?? null } };
   }
 
-  const index = pokemon.map((p) => ({ id: p.id, slug: p.slug, name: p.name.it ?? p.name.en, types: p.typesByGen[LAST_GEN] }));
+  const index = pokemon.map((p) => ({ id: p.id, slug: p.slug, name: { it: p.name.it ?? p.name.en, en: p.name.en ?? p.name.it }, types: p.typesByGen[LAST_GEN] }));
 
   await writeFile(join(OUT, 'types.json'), JSON.stringify({ types, chart }));
   await writeFile(join(OUT, 'games.json'), JSON.stringify(games));

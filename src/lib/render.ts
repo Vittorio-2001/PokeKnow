@@ -1,5 +1,5 @@
 // Funzioni di rendering condivise: le usa Astro per l'HTML iniziale (SSG)
-// e lo script del browser quando cambi gioco. Una sola fonte di markup.
+// e lo script del browser quando cambi gioco. Una sola fonte di markup, in ogni lingua.
 import {
   type Ability,
   type Lang,
@@ -9,6 +9,7 @@ import {
   isPresent,
   text,
 } from './data';
+import { t } from './i18n';
 import { defensiveProfile, offensiveProfile } from './typechart';
 import { type Theme, themeFor } from './themes';
 
@@ -41,14 +42,12 @@ export function defaultSpriteUrl(id: number): string {
 // Giochi in cui le abilità non esistono come meccanica.
 const NO_ABILITIES = new Set(['lets-go-pikachu-lets-go-eevee', 'legends-arceus', 'legends-za']);
 
-const STAT_LABELS = ['PS', 'Attacco', 'Difesa', 'Att. Sp.', 'Dif. Sp.', 'Velocità'];
-
-const DEFENSE_GROUPS: { m: number; label: string; mark: string }[] = [
-  { m: 4, label: 'Debolissimo', mark: '×4' },
-  { m: 2, label: 'Debole', mark: '×2' },
-  { m: 0.5, label: 'Resiste', mark: '×½' },
-  { m: 0.25, label: 'Resiste molto', mark: '×¼' },
-  { m: 0, label: 'Immune', mark: '×0' },
+const DEFENSE_GROUPS: { m: number; mark: string }[] = [
+  { m: 4, mark: '×4' },
+  { m: 2, mark: '×2' },
+  { m: 0.5, mark: '×½' },
+  { m: 0.25, mark: '×¼' },
+  { m: 0, mark: '×0' },
 ];
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
@@ -62,14 +61,14 @@ export function esc(value: string): string {
     .replaceAll('"', '&quot;');
 }
 
-export function typeChip(slug: string, size: 'md' | 'sm' = 'md'): string {
-  const t = TYPE_BY_SLUG.get(slug);
-  if (!t) return '';
-  return `<span class="type type--${size}" style="--type:${t.color}">${esc(text(t.name))}</span>`;
+export function typeChip(slug: string, lang: Lang, size: 'md' | 'sm' = 'md'): string {
+  const type = TYPE_BY_SLUG.get(slug);
+  if (!type) return '';
+  return `<span class="type type--${size}" style="--type:${type.color}">${esc(text(type.name, lang))}</span>`;
 }
 
-function chips(slugs: string[], size: 'md' | 'sm' = 'sm'): string {
-  return `<span class="chips">${slugs.map((s) => typeChip(s, size)).join('')}</span>`;
+function chips(slugs: string[], lang: Lang, size: 'md' | 'sm' = 'sm'): string {
+  return `<span class="chips">${slugs.map((s) => typeChip(s, lang, size)).join('')}</span>`;
 }
 
 export interface RenderedView {
@@ -80,18 +79,20 @@ export interface RenderedView {
   slots: Record<string, string>;
 }
 
-/** Tutto ciò che dipende dal gioco scelto, già in HTML. */
+/** Tutto ciò che dipende dal gioco scelto, già in HTML, nella lingua della pagina. */
 export function renderView(
   pokemon: Pokemon,
   abilities: Record<string, Ability>,
   versionSlug: string,
+  lang: Lang,
 ): RenderedView {
   const version = VERSION_BY_SLUG.get(versionSlug);
   if (!version) throw new Error(`Versione sconosciuta: ${versionSlug}`);
+  const ui = t(lang);
   const { game } = version;
   const gen = game.gen;
-  const versionName = text(version.name);
-  const name = text(pokemon.name);
+  const versionName = text(version.name, lang);
+  const name = text(pokemon.name, lang);
   const types = pokemon.typesByGen[gen] ?? [];
 
   return {
@@ -100,101 +101,123 @@ export function renderView(
     theme: themeFor(game.group),
     sprite: spriteUrl(pokemon.id, game.group),
     slots: {
-      flavor: renderFlavor(pokemon, versionSlug, versionName),
-      types: chips(types, 'md'),
-      generation: `Regole della Generazione ${roman(gen)}`,
-      defense: renderDefense(types, gen),
-      offense: renderOffense(types, gen),
-      stats: renderStats(pokemon.statsByGen[gen] ?? []),
+      flavor: renderFlavor(pokemon, versionSlug, versionName, lang),
+      types: chips(types, lang, 'md'),
+      generation: esc(ui.rulesOf(roman(gen))),
+      defense: renderDefense(types, gen, lang),
+      offense: renderOffense(types, gen, lang),
+      stats: renderStats(pokemon.statsByGen[gen] ?? [], lang),
       abilities: NO_ABILITIES.has(game.group)
-        ? `<p class="muted">In ${esc(versionName)} i Pokémon non hanno abilità.</p>`
-        : renderAbilities(pokemon.abilitiesByGen[gen] ?? [], abilities),
-      dex: renderDex(pokemon, game.group, versionName, name),
+        ? `<p class="muted">${esc(ui.noAbilitiesInGame(versionName))}</p>`
+        : renderAbilities(pokemon.abilitiesByGen[gen] ?? [], abilities, lang),
+      dex: renderDex(pokemon, game.group, versionName, name, lang),
     },
   };
 }
 
-function renderFlavor(pokemon: Pokemon, versionSlug: string, versionName: string): string {
+/** La lingua in cui mostrare un testo: quella della pagina se c'è, altrimenti l'altra. */
+function pickLang(value: { it?: string | null; en?: string | null }, lang: Lang): Lang | null {
+  if (value[lang]) return lang;
+  const other: Lang = lang === 'it' ? 'en' : 'it';
+  return value[other] ? other : null;
+}
+
+function renderFlavor(pokemon: Pokemon, versionSlug: string, versionName: string, lang: Lang): string {
+  const ui = t(lang);
   const entry = pokemon.flavor[versionSlug];
-  if (!entry) {
-    return `<p class="dialog__text dialog__text--empty">In ${esc(versionName)} non c’è ancora una voce del Pokédex per questo Pokémon nei dati che usiamo.</p>`;
+  const shown = entry ? pickLang(entry, lang) : null;
+  if (!entry || !shown) {
+    return `<p class="dialog__text dialog__text--empty">${esc(ui.noFlavor(versionName))}</p>`;
   }
-  const lang: Lang = entry.it ? 'it' : 'en';
-  const note = lang === 'en' ? `<p class="dialog__note">Testo originale in inglese: il gioco non ha una traduzione italiana di questa voce.</p>` : '';
-  return `<p class="dialog__text" lang="${lang}">${esc(entry[lang]!)}</p>${note}`;
+  const note = shown !== lang ? `<p class="dialog__note">${esc(ui.flavorOtherLang)}</p>` : '';
+  return `<p class="dialog__text" lang="${shown}">${esc(entry[shown]!)}</p>${note}`;
 }
 
-function renderDefense(types: string[], gen: number): string {
+function renderDefense(types: string[], gen: number, lang: Lang): string {
+  const ui = t(lang);
   const profile = defensiveProfile(types, gen);
-  const rows = DEFENSE_GROUPS.filter((g) => profile.get(g.m)?.length).map(
-    (g) => `<div class="matchup">
+  return DEFENSE_GROUPS.filter((g) => profile.get(g.m)?.length)
+    .map(
+      (g) => `<div class="matchup">
       <span class="matchup__mark">${g.mark}</span>
-      <span class="matchup__label">${g.label}</span>
-      ${chips(profile.get(g.m)!)}
+      <span class="matchup__label">${esc(ui.defenseLabels[g.m])}</span>
+      ${chips(profile.get(g.m)!, lang)}
     </div>`,
-  );
-  return rows.join('');
+    )
+    .join('');
 }
 
-function renderOffense(types: string[], gen: number): string {
+function renderOffense(types: string[], gen: number, lang: Lang): string {
+  const ui = t(lang);
   return offensiveProfile(types, gen)
     .map((row) => {
       const lines = [
-        ['Superefficaci contro', row.strong],
-        ['Poco efficaci contro', row.weak],
-        ['Nessun effetto su', row.immune],
+        [ui.superEffective, row.strong],
+        [ui.notVeryEffective, row.weak],
+        [ui.noEffect, row.immune],
       ] as const;
       const body = lines
         .filter(([, list]) => list.length)
-        .map(([label, list]) => `<div class="offense__line"><span class="offense__label">${label}</span>${chips(list)}</div>`)
+        .map(
+          ([label, list]) =>
+            `<div class="offense__line"><span class="offense__label">${esc(label)}</span>${chips(list, lang)}</div>`,
+        )
         .join('');
       return `<div class="offense">
-        <h3 class="offense__title">Mosse di tipo ${typeChip(row.attack)}</h3>
-        ${body || '<p class="muted">Neutre contro tutti i tipi.</p>'}
+        <h3 class="offense__title">${ui.movesOfType(typeChip(row.attack, lang))}</h3>
+        ${body || `<p class="muted">${esc(ui.neutralAll)}</p>`}
       </div>`;
     })
     .join('');
 }
 
-function renderStats(stats: number[]): string {
+function renderStats(stats: number[], lang: Lang): string {
   if (!stats.length) return '';
+  const ui = t(lang);
   const total = stats.reduce((a, b) => a + b, 0);
   const rows = stats
     .map((value, i) => {
       const width = Math.min(value / 180, 1) * 100;
       return `<div class="stat">
-        <span class="stat__label">${STAT_LABELS[i]}</span>
+        <span class="stat__label">${esc(ui.statLabels[i])}</span>
         <span class="stat__value">${value}</span>
         <span class="stat__bar" aria-hidden="true"><span style="width:${width.toFixed(1)}%"></span></span>
       </div>`;
     })
     .join('');
-  return `${rows}<div class="stat stat--total"><span class="stat__label">Totale</span><span class="stat__value">${total}</span></div>`;
+  return `${rows}<div class="stat stat--total"><span class="stat__label">${esc(ui.total)}</span><span class="stat__value">${total}</span></div>`;
 }
 
-function renderAbilities(list: { id: number; hidden: boolean }[], abilities: Record<string, Ability>): string {
-  if (!list.length) return '<p class="muted">Nessuna abilità in questo gioco.</p>';
+function renderAbilities(
+  list: { id: number; hidden: boolean }[],
+  abilities: Record<string, Ability>,
+  lang: Lang,
+): string {
+  const ui = t(lang);
+  if (!list.length) return `<p class="muted">${esc(ui.noAbilities)}</p>`;
   return list
     .map(({ id, hidden }) => {
-      const a = abilities[id];
-      if (!a) return '';
-      const descLang: Lang = a.desc.it ? 'it' : 'en';
-      const desc = a.desc[descLang];
+      const ability = abilities[id];
+      if (!ability) return '';
+      const descLang = pickLang(ability.desc, lang);
+      const desc = descLang ? ability.desc[descLang] : null;
       return `<div class="ability">
-        <h3 class="ability__name">${esc(text(a.name))}${hidden ? ' <span class="tag">Nascosta</span>' : ''}</h3>
+        <h3 class="ability__name">${esc(text(ability.name, lang))}${hidden ? ` <span class="tag">${esc(ui.hidden)}</span>` : ''}</h3>
         ${desc ? `<p class="ability__desc" lang="${descLang}">${esc(desc)}</p>` : ''}
       </div>`;
     })
     .join('');
 }
 
-function renderDex(pokemon: Pokemon, group: string, versionName: string, name: string): string {
-  if (!isPresent(pokemon, group)) return `<p>${esc(name)} non è presente in ${esc(versionName)}.</p>`;
+function renderDex(pokemon: Pokemon, group: string, versionName: string, name: string, lang: Lang): string {
+  const ui = t(lang);
+  if (!isPresent(pokemon, group)) return `<p>${esc(ui.notInGame(name, versionName))}</p>`;
   const entries = pokemon.games[group];
-  if (!entries.length) {
-    return `<p>Non compare nel Pokédex regionale di ${esc(versionName)}, ma è presente nel Pokédex Nazionale del gioco.</p>`;
-  }
+  if (!entries.length) return `<p>${esc(ui.notInRegionalDex(versionName))}</p>`;
   return `<ul class="dex">${entries
-    .map((e) => `<li><span class="dex__name">${esc(e.dex)}</span><span class="dex__n">n. ${e.n}</span></li>`)
+    .map(
+      (e) =>
+        `<li><span class="dex__name">${esc(text(e.dex, lang))}</span><span class="dex__n">${esc(ui.dexNumber(e.n))}</span></li>`,
+    )
     .join('')}</ul>`;
 }

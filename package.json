@@ -3,6 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "data": "node scripts/fetch-data.mjs",
     "dev": "node scripts/fetch-data.mjs && astro dev",

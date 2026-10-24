@@ -1,0 +1,10 @@
+---
+import PokemonPage from '../../../components/PokemonPage.astro';
+import { pokemonPaths } from '../../../lib/paths';
+
+export function getStaticPaths() {
+  return pokemonPaths();
+}
+---
+
+<PokemonPage {...Astro.props} lang="en" />

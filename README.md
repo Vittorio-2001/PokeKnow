@@ -2,11 +2,9 @@
 
 **A Pokédex for every generation.** Pick a Pokémon, pick a game, and the whole page adapts: type matchups computed with that generation's rules, the stats and abilities it had back then, the Pokédex entry from that exact version, and a UI theme inspired by the era of the game.
 
-**Live site:** [vittorio-2001.github.io/PokeKnow](https://vittorio-2001.github.io/PokeKnow/)
+**Live site:** [English](https://vittorio-2001.github.io/PokeKnow/en/) · [Italiano](https://vittorio-2001.github.io/PokeKnow/)
 
 ![Gengar seen through nine eras: Emerald, Platinum, Black, X, Sun, Sword, Legends: Arceus, Scarlet and Legends: Z-A](docs/eras.png)
-
-> The site is currently in Italian; more languages are on the way.
 
 ## Features
 
@@ -20,6 +18,7 @@
 - **Version palettes**: every game pairs the colors of its two versions. Choose Sun and the sky fades from sun-orange into moon-violet; choose Moon and it flips. White and White 2 get a light take on the Unova theme.
 - **Sprites from each era**: original pixel art up to Gen V (animated in Black and White), 3D renders afterwards. Every sprite is measured at runtime so its feet rest on the battle platform instead of floating above it.
 - **Shareable state**: the chosen game lives in the URL (`?gioco=emerald`) and is remembered while you browse from one Pokémon to the next.
+- **Italian and English**: the whole interface, Pokémon names, categories, abilities and Pokédex entries in both languages, with a language switch that keeps the game you picked.
 - **Search and filters**: search by name or National Dex number, filter by type.
 - **Responsive and accessible**: works down to phone width, keyboard focus is always visible, and the typewriter effect respects reduced-motion settings.
 
@@ -35,6 +34,8 @@
 
 **Sprite anchoring.** Sprites come with different amounts of transparent padding. `src/lib/sprite-anchor.ts` reads the visible pixels through a canvas and shifts the image so it is grounded on themes with a platform, or truly centered on the others.
 
+**Internationalization without a framework.** Every interface string lives in one typed dictionary per language (`src/lib/i18n.ts`); a test fails if a language is missing a key. Italian is served at the root and English under `/en/`, with `hreflang` alternates for search engines. Pages are thin wrappers around shared components, so adding a language means adding a dictionary and two route files.
+
 **Continuous deployment.** A GitHub Actions workflow runs the tests, builds the site and publishes it to GitHub Pages on every push to `main`. The base path is detected automatically, so the same code works under `/PokeKnow/` or on a custom domain.
 
 ## Tech stack
@@ -43,7 +44,7 @@
 - Vanilla JavaScript on the client: no framework, a single small script per page
 - [PokéAPI](https://pokeapi.co) data (CSV dumps) and sprites
 - Self-hosted fonts through [Fontsource](https://fontsource.org): no requests to Google Fonts
-- [Vitest](https://vitest.dev) for the type-chart logic
+- [Vitest](https://vitest.dev) for the type-chart logic and the translations
 - GitHub Actions and GitHub Pages
 
 ## Getting started
@@ -54,7 +55,7 @@ Requires Node.js 22.23.4 or later.
 npm install
 npm run dev      # downloads the data on first run, then starts the dev server
 npm run build    # generates the static site in dist/
-npm test         # type-chart tests
+npm test         # type-chart and translation tests
 ```
 
 To refresh the PokéAPI data: `npm run data -- --refresh`.
@@ -69,8 +70,11 @@ src/lib/render.ts                section HTML, shared by the build and the brows
 src/lib/themes.ts                which theme and which sprites for each game
 src/lib/sprite-anchor.ts         grounds sprites on the platform
 src/lib/url.ts                   internal links that work under any base path
-src/pages/index.astro            search and type filter
-src/pages/pokemon/[slug].astro   Pokémon page with the game picker
+src/lib/i18n.ts                  interface strings for every language
+src/lib/paths.ts                 static routes shared by all languages
+src/components/                  home and Pokémon page, shared by all languages
+src/pages/                       Italian routes (index, pokemon/[slug])
+src/pages/en/                    English routes
 src/styles/global.css            shared layout and the black-and-white base theme
 src/styles/themes.css            era themes and version palettes
 src/styles/fonts.css             self-hosted fonts
@@ -80,7 +84,7 @@ tests/                           Vitest tests
 
 ## Known data gaps
 
-- **Italian Pokédex entries**: PokéAPI only has them from X and Y up to Sword and Shield. Other games fall back to the English text, with a note.
+- **Italian Pokédex entries**: PokéAPI only has them from X and Y up to Sword and Shield. On the Italian site, other games fall back to the English text, with a note.
 - **Scarlet and Violet** have few entries in PokéAPI, and **Legends: Z-A** none yet. The page says so instead of showing an empty box.
 - Alternate forms (regional variants, Mega Evolutions, Gigantamax) are not included yet: only the default form.
 
@@ -88,8 +92,12 @@ tests/                           Vitest tests
 
 1. **Recommended builds per game**: a moveset with good type coverage using moves learnable in that game, a suggested nature, and ability and item where they exist. Story builds first, competitive sets later.
 2. Regional forms and Mega Evolutions.
-3. A multilingual interface, starting with English.
+3. More languages.
 4. A custom domain.
+
+## License
+
+The source code is released under the [MIT License](LICENSE). The license covers the code only: Pokémon data, names, sprites and trademarks belong to their respective owners, the site icon follows the Icons8 license, and fonts keep their own licenses.
 
 ## Credits and disclaimer
 

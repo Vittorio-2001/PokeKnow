@@ -42,7 +42,7 @@ export interface Ability {
 }
 
 export interface RegionalEntry {
-  dex: string;
+  dex: Localized;
   n: number;
 }
 
@@ -67,7 +67,7 @@ export interface Pokemon {
 export interface IndexEntry {
   id: number;
   slug: string;
-  name: string;
+  name: Localized;
   types: string[];
 }
 
@@ -90,11 +90,15 @@ export function isPresent(pokemon: Pokemon, group: string): boolean {
   return group in pokemon.games;
 }
 
-/** Il gioco più recente in cui il Pokémon c'è e ha una voce del Pokédex; altrimenti il più recente in cui c'è. */
-export function defaultVersion(pokemon: Pokemon): string {
+/**
+ * Il gioco più recente in cui il Pokémon c'è e ha una voce del Pokédex nella lingua della pagina;
+ * poi in un'altra lingua; altrimenti il più recente in cui c'è.
+ */
+export function defaultVersion(pokemon: Pokemon, lang: Lang = 'it'): string {
   const present = VERSIONS.filter((v) => isPresent(pokemon, v.game.group));
+  const inLang = present.filter((v) => pokemon.flavor[v.slug]?.[lang]);
   const withText = present.filter((v) => pokemon.flavor[v.slug]);
-  const pick = (withText.length ? withText : present).at(-1) ?? VERSIONS.at(-1)!;
+  const pick = [inLang, withText, present].find((list) => list.length)?.at(-1) ?? VERSIONS.at(-1)!;
   return pick.slug;
 }
 

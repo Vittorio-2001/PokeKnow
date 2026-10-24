@@ -1,0 +1,143 @@
+---
+import Base from '../layouts/Base.astro';
+import index from '../data/generated/index.json';
+import { TYPES, TYPE_BY_SLUG, padId, text, type IndexEntry, type Lang } from '../lib/data';
+import { localePath, t } from '../lib/i18n';
+import { defaultSpriteUrl, typeChip } from '../lib/render';
+import { href } from '../lib/url';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const ui = t(lang);
+const list = index as IndexEntry[];
+const typeName = (slug: string) => text(TYPE_BY_SLUG.get(slug)?.name, lang);
+---
+
+<Base title={`PokéKnow — ${ui.siteTagline}`} description={ui.homeDescription} lang={lang} path="">
+  <section class="wrap finder" id="cerca">
+    <h1 class="finder__title display">{ui.searchTitle}</h1>
+    <p class="finder__lead">{ui.searchLead}</p>
+
+    <div class="finder__field px">
+      <label class="sr-only" for="q">{ui.searchLabel}</label>
+      <input id="q" type="search" placeholder={ui.searchPlaceholder} autocomplete="off" spellcheck="false" />
+      <output class="finder__count" id="count" for="q" aria-live="polite">{ui.count(list.length)}</output>
+    </div>
+
+    <fieldset class="filters">
+      <legend>{ui.filterByType}</legend>
+      {
+        TYPES.map((type) => (
+          <button class="filter" type="button" data-type={type.slug} aria-pressed="false">
+            <Fragment set:html={typeChip(type.slug, lang, 'sm')} />
+          </button>
+        ))
+      }
+    </fieldset>
+  </section>
+
+  <section class="wrap">
+    <h2 class="sr-only">{ui.listHeading}</h2>
+    <ul class="grid" id="grid">
+      {
+        list.map((p) => (
+          <li
+            data-name={[p.name.it, p.name.en].filter(Boolean).join(' ').toLowerCase()}
+            data-id={p.id}
+            data-types={p.types.join(' ')}
+          >
+            <a href={href(localePath(lang, `pokemon/${p.slug}/`))}>
+              <img
+                class="pixelated"
+                src={defaultSpriteUrl(p.id)}
+                alt=""
+                width="96"
+                height="96"
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="grid__n">#{padId(p.id)}</span>
+              <span class="grid__name">{text(p.name, lang)}</span>
+              <span class="grid__types">
+                {p.types.map((slug) => (
+                  <span style={`--type:${TYPE_BY_SLUG.get(slug)?.color}`} title={typeName(slug)} />
+                ))}
+                <span class="sr-only">{ui.typeOf(p.types.map(typeName))}</span>
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="empty" id="empty" hidden>{ui.empty}</p>
+  </section>
+</Base>
+
+<script>
+  import { isLang, t } from '../lib/i18n';
+
+  const lang = isLang(document.documentElement.lang) ? document.documentElement.lang : 'it';
+  const ui = t(lang);
+  const TYPE_PARAM = lang === 'it' ? 'tipo' : 'type';
+
+  const input = document.querySelector<HTMLInputElement>('#q')!;
+  const count = document.querySelector<HTMLOutputElement>('#count')!;
+  const empty = document.querySelector<HTMLElement>('#empty')!;
+  const items = [...document.querySelectorAll<HTMLLIElement>('#grid li')];
+  const filters = [...document.querySelectorAll<HTMLButtonElement>('.filter')];
+  const active = new Set<string>();
+
+  // Normalizza accenti e simboli: "nidoran" trova anche Nidoran♀ e Nidoran♂.
+  const norm = (s: string) => s.normalize('NFD').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+  const names = new Map(items.map((li) => [li, norm(li.dataset.name ?? '')]));
+
+  function apply() {
+    const q = norm(input.value.trim());
+    const asNumber = /^\d+$/.test(q) ? Number(q) : null;
+    let shown = 0;
+    for (const li of items) {
+      const matchesText = !q || (asNumber !== null ? Number(li.dataset.id) === asNumber : names.get(li)!.includes(q));
+      const types = (li.dataset.types ?? '').split(' ');
+      const matchesType = [...active].every((type) => types.includes(type));
+      const visible = matchesText && matchesType;
+      li.hidden = !visible;
+      if (visible) shown++;
+    }
+    count.textContent = ui.count(shown);
+    empty.hidden = shown > 0;
+
+    const params = new URLSearchParams();
+    if (input.value.trim()) params.set('q', input.value.trim());
+    if (active.size) params.set(TYPE_PARAM, [...active].join(','));
+    const qs = params.toString();
+    history.replaceState(null, '', qs ? `?${qs}#cerca` : location.pathname);
+  }
+
+  for (const button of filters) {
+    button.addEventListener('click', () => {
+      const type = button.dataset.type!;
+      if (active.has(type)) active.delete(type);
+      else active.add(type);
+      button.setAttribute('aria-pressed', String(active.has(type)));
+      apply();
+    });
+  }
+
+  input.addEventListener('input', apply);
+
+  // Ripristina la ricerca dall'URL (link condivisibili, tasto indietro).
+  const params = new URLSearchParams(location.search);
+  if (params.has('q')) input.value = params.get('q')!;
+  const fromUrl = params.get('tipo') ?? params.get('type') ?? '';
+  for (const type of fromUrl.split(',').filter(Boolean)) {
+    const button = filters.find((b) => b.dataset.type === type);
+    if (button) {
+      active.add(type);
+      button.setAttribute('aria-pressed', 'true');
+    }
+  }
+  if (params.size) apply();
+</script>

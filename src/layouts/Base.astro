@@ -2,31 +2,38 @@
 import '../styles/fonts.css';
 import '../styles/global.css';
 import '../styles/themes.css';
+import type { Lang } from '../lib/data';
+import { DEFAULT_LANG, LANGS, LANG_NAMES, localePath, t } from '../lib/i18n';
 import { href } from '../lib/url';
 
 interface Props {
   title: string;
   description: string;
+  lang: Lang;
+  /** Percorso della pagina senza lingua né base, per esempio 'pokemon/gengar/' ('' per la home). */
+  path: string;
   /** Tema del gioco (solo nelle schede); senza, resta il tema base in bianco e nero. */
   theme?: string;
   version?: string;
   pixel?: boolean;
 }
 
-const { title, description, theme, version, pixel = true } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site);
-
+const { title, description, lang, path, theme, version, pixel = true } = Astro.props;
+const ui = t(lang);
+const absolute = (l: Lang) => new URL(href(localePath(l, path)), Astro.site).href;
 ---
 
 <!doctype html>
-<html lang="it" data-theme={theme} data-version={version} data-sprite={theme ? (pixel ? 'pixel' : 'smooth') : undefined}>
+<html lang={lang} data-theme={theme} data-version={version} data-sprite={theme ? (pixel ? 'pixel' : 'smooth') : undefined}>
   <head>
     <meta charset="utf-8" />
     <script is:inline>document.documentElement.classList.add('js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    <link rel="canonical" href={absolute(lang)} />
+    {LANGS.map((l) => <link rel="alternate" hreflang={l} href={absolute(l)} />)}
+    <link rel="alternate" hreflang="x-default" href={absolute(DEFAULT_LANG)} />
 
     <!-- Icona: "Pokedex" di Those Icons su Icons8 (https://icons8.com/icon/ih6hQU67d27H/pokedex) -->
     <link rel="icon" href={href('favicon.ico')} sizes="32x32" />
@@ -37,15 +44,31 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:locale" content={lang === 'it' ? 'it_IT' : 'en_US'} />
     <link rel="preconnect" href="https://raw.githubusercontent.com" />
     <slot name="head" />
   </head>
   <body>
     <header class="masthead">
       <div class="wrap masthead__inner">
-        <a class="logo display" href={href()}>PokéKnow</a>
-        <nav aria-label="Principale">
-          <a href={href('#cerca')}>Cerca</a>
+        <a class="logo display" href={href(localePath(lang))}>PokéKnow</a>
+        <nav class="masthead__nav" aria-label={ui.navMain}>
+          <a href={href(localePath(lang, '#cerca'))}>{ui.navSearch}</a>
+          <span class="langs" aria-label={ui.switchLanguage}>
+            {
+              LANGS.map((l) =>
+                l === lang ? (
+                  <span class="langs__current" aria-current="true" lang={l}>
+                    {l.toUpperCase()}
+                  </span>
+                ) : (
+                  <a href={href(localePath(l, path))} hreflang={l} lang={l} data-lang-link={l} title={LANG_NAMES[l]}>
+                    {l.toUpperCase()}
+                  </a>
+                ),
+              )
+            }
+          </span>
         </nav>
       </div>
     </header>
@@ -56,15 +79,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 
     <footer class="footer">
       <div class="wrap">
+        <p>{ui.footerDisclaimer}</p>
+        <p>{ui.footerData}: <a href="https://pokeapi.co">PokéAPI</a>.</p>
         <p>
-          PokéKnow è un progetto amatoriale e senza scopo di lucro. Non è affiliato con Nintendo, Creatures Inc., GAME FREAK
-          o The Pokémon Company. Pokémon e i nomi dei personaggi sono marchi dei rispettivi proprietari. I temi sono
-          ispirati alle interfacce dei giochi di ogni epoca.
-        </p>
-        <p>Dati e sprite: <a href="https://pokeapi.co">PokéAPI</a>.</p>
-        <p>
-          Icona: <a href="https://icons8.com/icon/ih6hQU67d27H/pokedex">Pokedex</a> di Those Icons su
-          <a href="https://icons8.com">Icons8</a>.
+          {ui.footerIcon}: <a href="https://icons8.com/icon/ih6hQU67d27H/pokedex">Pokedex</a>{' '}
+          {ui.footerIconBy} <a href="https://icons8.com">Icons8</a>.
         </p>
       </div>
     </footer>
