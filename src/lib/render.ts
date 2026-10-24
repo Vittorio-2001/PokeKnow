@@ -5,6 +5,7 @@ import {
   type Lang,
   type Pokemon,
   TYPE_BY_SLUG,
+  VERSIONS,
   VERSION_BY_SLUG,
   isPresent,
   text,
@@ -122,15 +123,76 @@ function pickLang(value: { it?: string | null; en?: string | null }, lang: Lang)
   return value[other] ? other : null;
 }
 
+export type FlavorChoice =
+  | { kind: 'exact'; version: string; lang: Lang }
+  | { kind: 'otherGame'; version: string; lang: Lang; original: Lang | null }
+  | { kind: 'otherLang'; version: string; lang: Lang }
+  | { kind: 'nearest'; version: string; lang: Lang }
+  | { kind: 'none' };
+
+/**
+ * Quale voce del Pokédex mostrare per un gioco, in ordine di preferenza:
+ * 1. la voce di quel gioco nella lingua della pagina;
+ * 2. la voce nella lingua della pagina del gioco più vicino (prima l'altra versione della coppia),
+ *    con il testo originale di quel gioco a portata di clic;
+ * 3. la voce di quel gioco nell'altra lingua;
+ * 4. la voce più vicina in qualunque lingua, per i giochi che non ne hanno nessuna.
+ */
+export function chooseFlavor(pokemon: Pokemon, versionSlug: string, lang: Lang): FlavorChoice {
+  const other: Lang = lang === 'it' ? 'en' : 'it';
+  const here = pokemon.flavor[versionSlug];
+  if (here?.[lang]) return { kind: 'exact', version: versionSlug, lang };
+
+  const index = VERSIONS.findIndex((v) => v.slug === versionSlug);
+  const group = VERSIONS[index]?.game.group;
+  const byDistance = VERSIONS.map((v, i) => ({ v, i }))
+    .filter(({ v }) => v.slug !== versionSlug && pokemon.flavor[v.slug])
+    .sort(
+      (a, b) =>
+        Number(a.v.game.group !== group) - Number(b.v.game.group !== group) ||
+        Math.abs(a.i - index) - Math.abs(b.i - index) ||
+        b.i - a.i, // a parità di distanza, il gioco più recente
+    )
+    .map(({ v }) => v.slug);
+
+  const nearestInLang = byDistance.find((slug) => pokemon.flavor[slug]?.[lang]);
+  if (nearestInLang) {
+    const original = here?.[other] ? other : null;
+    return here ? { kind: 'otherGame', version: nearestInLang, lang, original } : { kind: 'nearest', version: nearestInLang, lang };
+  }
+  if (here?.[other]) return { kind: 'otherLang', version: versionSlug, lang: other };
+  const nearestAny = byDistance[0];
+  if (nearestAny) return { kind: 'nearest', version: nearestAny, lang: pickLang(pokemon.flavor[nearestAny], lang)! };
+  return { kind: 'none' };
+}
+
 function renderFlavor(pokemon: Pokemon, versionSlug: string, versionName: string, lang: Lang): string {
   const ui = t(lang);
-  const entry = pokemon.flavor[versionSlug];
-  const shown = entry ? pickLang(entry, lang) : null;
-  if (!entry || !shown) {
+  const choice = chooseFlavor(pokemon, versionSlug, lang);
+  if (choice.kind === 'none') {
     return `<p class="dialog__text dialog__text--empty">${esc(ui.noFlavor(versionName))}</p>`;
   }
-  const note = shown !== lang ? `<p class="dialog__note">${esc(ui.flavorOtherLang)}</p>` : '';
-  return `<p class="dialog__text" lang="${shown}">${esc(entry[shown]!)}</p>${note}`;
+  const body = pokemon.flavor[choice.version][choice.lang]!;
+  const text_ = `<p class="dialog__text" lang="${choice.lang}">${esc(body)}</p>`;
+  const sourceName = text(VERSION_BY_SLUG.get(choice.version)?.name, lang);
+
+  switch (choice.kind) {
+    case 'exact':
+      return text_;
+    case 'otherLang':
+      return `${text_}<p class="dialog__note">${esc(ui.flavorOtherLang)}</p>`;
+    case 'nearest':
+      return `${text_}<p class="dialog__note">${esc(ui.flavorNearest(sourceName, versionName))}</p>`;
+    case 'otherGame': {
+      const note = `<p class="dialog__note">${esc(ui.flavorFromGame(sourceName, versionName))}</p>`;
+      if (!choice.original) return text_ + note;
+      const original = pokemon.flavor[versionSlug][choice.original]!;
+      return `${text_}${note}<details class="dialog__alt">
+        <summary>${esc(ui.showOriginal(versionName, ui.langNameIn[choice.original]))}</summary>
+        <p lang="${choice.original}">${esc(original)}</p>
+      </details>`;
+    }
+  }
 }
 
 function renderDefense(types: string[], gen: number, lang: Lang): string {

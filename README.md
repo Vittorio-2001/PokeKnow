@@ -84,8 +84,8 @@ tests/                           Vitest tests
 
 ## Known data gaps
 
-- **Italian Pokédex entries**: PokéAPI only has them from X and Y up to Sword and Shield. On the Italian site, other games fall back to the English text, with a note.
-- **Scarlet and Violet** have few entries in PokéAPI, and **Legends: Z-A** none yet. The page says so instead of showing an empty box.
+- **Italian Pokédex entries**: PokéAPI only has them from X and Y up to Sword and Shield. When a game has no entry in the page language, the site shows the entry from the nearest game in that language, says which game it comes from, and keeps the game's original text one click away.
+- **Scarlet and Violet** have few entries in PokéAPI, and **Legends: Z-A** none yet. These games show the nearest available entry, clearly labeled with its source game.
 - Alternate forms (regional variants, Mega Evolutions, Gigantamax) are not included yet: only the default form.
 
 ## Roadmap
