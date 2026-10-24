@@ -2,6 +2,7 @@
 import '../styles/fonts.css';
 import '../styles/global.css';
 import '../styles/themes.css';
+import { href } from '../lib/url';
 
 interface Props {
   title: string;
@@ -25,7 +26,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href={href('favicon.svg')} type="image/svg+xml" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <link rel="preconnect" href="https://raw.githubusercontent.com" />
@@ -34,9 +35,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   <body>
     <header class="masthead">
       <div class="wrap masthead__inner">
-        <a class="logo display" href="/">PokéKnow</a>
+        <a class="logo display" href={href()}>PokéKnow</a>
         <nav aria-label="Principale">
-          <a href="/#cerca">Cerca</a>
+          <a href={href('#cerca')}>Cerca</a>
         </nav>
       </div>
     </header>

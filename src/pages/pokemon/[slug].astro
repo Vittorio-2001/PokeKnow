@@ -5,6 +5,7 @@ import abilitiesJson from '../../data/generated/abilities.json';
 import { GAMES, VERSIONS, type Ability, type Pokemon, defaultVersion, isPresent, padId, text } from '../../lib/data';
 import { renderView, roman } from '../../lib/render';
 import { themeFor } from '../../lib/themes';
+import { href } from '../../lib/url';
 
 export function getStaticPaths() {
   const all = pokemonJson as Pokemon[];
@@ -191,7 +192,7 @@ const themeByVersion = Object.fromEntries(
     <nav class="pager" aria-label="Pokémon vicini">
       {
         prev && (
-          <a href={`/pokemon/${prev.slug}/`} rel="prev">
+          <a href={href(`pokemon/${prev.slug}/`)} rel="prev">
             <span class="pager__dir">Precedente</span>
             <span class="pager__name">
               #{padId(prev.id)} {prev.name}
@@ -201,7 +202,7 @@ const themeByVersion = Object.fromEntries(
       }
       {
         next && (
-          <a class="pager__next" href={`/pokemon/${next.slug}/`} rel="next">
+          <a class="pager__next" href={href(`pokemon/${next.slug}/`)} rel="next">
             <span class="pager__dir">Successivo</span>
             <span class="pager__name">
               #{padId(next.id)} {next.name}

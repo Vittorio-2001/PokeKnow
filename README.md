@@ -17,7 +17,7 @@ npm test         # test della logica dei tipi
 
 Per riscaricare i dati aggiornati da PokéAPI: `npm run data -- --refresh`.
 
-Per pubblicarlo su Netlify: comando di build `npm run build`, cartella `dist`. Il file `.nvmrc` fa usare Node 22 anche sul server.
+Il sito si pubblica da solo su **GitHub Pages** a ogni push su `main` (`.github/workflows/deploy.yml`): test, build e deploy. Indirizzo e sottocartella vengono impostati in automatico, anche dopo aver collegato un dominio personale. Il file `.nvmrc` fa usare Node 22 anche sul server.
 
 Se sei dietro un proxy aziendale, Node non lo usa da solo: lancia lo script con `NODE_USE_ENV_PROXY=1`.
 

@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import index from '../data/generated/index.json';
 import { TYPES, TYPE_BY_SLUG, padId, text, type IndexEntry } from '../lib/data';
 import { defaultSpriteUrl, typeChip } from '../lib/render';
+import { href } from '../lib/url';
 
 const list = index as IndexEntry[];
 ---
@@ -45,7 +46,7 @@ const list = index as IndexEntry[];
       {
         list.map((p) => (
           <li data-name={p.name.toLowerCase()} data-id={p.id} data-types={p.types.join(' ')}>
-            <a href={`/pokemon/${p.slug}/`}>
+            <a href={href(`pokemon/${p.slug}/`)}>
               <img
                 class="pixelated"
                 src={defaultSpriteUrl(p.id)}
