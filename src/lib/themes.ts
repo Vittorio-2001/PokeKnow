@@ -5,22 +5,20 @@ export type ThemeKey = 'gba' | 'ds' | 'unova' | 'kalos' | 'alola' | 'galar' | 'h
 
 export interface Theme {
   key: ThemeKey;
-  /** Riga breve mostrata sotto il selettore del gioco. */
-  label: string;
   /** true = sprite in pixel art, da ingrandire senza sfocare. */
   pixel: boolean;
 }
 
 export const THEMES: Record<ThemeKey, Theme> = {
-  gba: { key: 'gba', label: 'Tema Game Boy Advance', pixel: true },
-  ds: { key: 'ds', label: 'Tema Nintendo DS', pixel: true },
-  unova: { key: 'unova', label: 'Tema Unima', pixel: true },
-  kalos: { key: 'kalos', label: 'Tema Kalos', pixel: false },
-  alola: { key: 'alola', label: 'Tema Alola', pixel: false },
-  galar: { key: 'galar', label: 'Tema Galar', pixel: false },
-  hisui: { key: 'hisui', label: 'Tema Hisui', pixel: false },
-  paldea: { key: 'paldea', label: 'Tema Paldea', pixel: false },
-  lumiose: { key: 'lumiose', label: 'Tema Luminopoli', pixel: false },
+  gba: { key: 'gba', pixel: true },
+  ds: { key: 'ds', pixel: true },
+  unova: { key: 'unova', pixel: true },
+  kalos: { key: 'kalos', pixel: false },
+  alola: { key: 'alola', pixel: false },
+  galar: { key: 'galar', pixel: false },
+  hisui: { key: 'hisui', pixel: false },
+  paldea: { key: 'paldea', pixel: false },
+  lumiose: { key: 'lumiose', pixel: false },
 };
 
 const THEME_BY_GROUP: Record<string, ThemeKey> = {

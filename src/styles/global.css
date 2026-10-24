@@ -49,6 +49,13 @@
   --stage-radius: 0px;
   --halo: var(--paper);
 
+  /* come allineare lo sprite: al centro, o con i piedi a una certa altezza (vedi sprite-anchor.ts) */
+  --sprite-anchor: center;
+
+  /* colori della coppia di versioni (Sole e Luna, Spada e Scudo…): --v1 la versione scelta, --v2 l'altra */
+  --v1: #000000;
+  --v2: #5c5c5c;
+
   /* statistiche e chip dei tipi */
   --bar-fill: repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 8px);
   --bar-border: 2px solid var(--ink);
@@ -474,12 +481,6 @@ h3 {
   background: #fff;
 }
 
-.game-picker__theme {
-  margin: 0;
-  font-size: var(--step--1);
-  color: var(--mute);
-}
-
 .stage-row {
   display: grid;
   grid-template-columns: minmax(14rem, 20rem) 1fr;
@@ -509,11 +510,17 @@ h3 {
 }
 
 .stage img {
-  position: relative;
+  position: absolute;
+  inset: 10%;
   z-index: 1;
   width: 80%;
   height: 80%;
   object-fit: contain;
+}
+
+/* finché lo sprite non è stato allineato resta invisibile, così non lo si vede "saltare" */
+.js .stage img:not(.is-placed) {
+  visibility: hidden;
 }
 
 .stage-side {

@@ -22,6 +22,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 <html lang="it" data-theme={theme} data-version={version} data-sprite={theme ? (pixel ? 'pixel' : 'smooth') : undefined}>
   <head>
     <meta charset="utf-8" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
