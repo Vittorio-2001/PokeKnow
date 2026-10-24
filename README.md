@@ -4,23 +4,6 @@ Un Pokédex web che mostra ogni Pokémon **gioco per gioco**, dai titoli per Gam
 
 Progetto amatoriale e senza scopo di lucro, non affiliato con Nintendo, Creatures Inc., GAME FREAK o The Pokémon Company.
 
-## Avvio
-
-Serve Node.js 22.23 o successivo.
-
-```bash
-npm install
-npm run dev      # scarica i dati (solo la prima volta) e avvia il server di sviluppo
-npm run build    # genera il sito statico in dist/
-npm test         # test della logica dei tipi
-```
-
-Per riscaricare i dati aggiornati da PokéAPI: `npm run data -- --refresh`.
-
-Per pubblicarlo su Netlify: comando di build `npm run build`, cartella `dist`. Il file `.nvmrc` fa usare Node 22 anche sul server.
-
-Se sei dietro un proxy aziendale, Node non lo usa da solo: lancia lo script con `NODE_USE_ENV_PROXY=1`.
-
 ## Come funziona
 
 **Dati.** `scripts/fetch-data.mjs` scarica i CSV ufficiali di PokéAPI da GitHub (una ventina di file, una volta sola, in `.cache/`) e genera i JSON in `src/data/generated/`. Niente chiamate all'API durante la navigazione: il sito è completamente statico e rispetta la fair use policy di PokéAPI.
