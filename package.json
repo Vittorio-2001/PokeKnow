@@ -8,7 +8,7 @@
     "dev": "node scripts/fetch-data.mjs && astro dev",
     "build": "node scripts/fetch-data.mjs && astro build",
     "preview": "astro preview",
-    "test": "vitest run"
+    "test": "node scripts/fetch-data.mjs && vitest run"
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible-next": "^5.3.0",
