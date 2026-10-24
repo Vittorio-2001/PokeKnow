@@ -93,6 +93,6 @@ tests/                           Vitest tests
 
 ## Credits and disclaimer
 
-Data and sprites come from [PokéAPI](https://pokeapi.co). Fonts are distributed under the SIL Open Font License through Fontsource.
+Data and sprites come from [PokéAPI](https://pokeapi.co). The site icon is [Pokedex](https://icons8.com/icon/ih6hQU67d27H/pokedex) by Those Icons on [Icons8](https://icons8.com). Fonts are distributed under the SIL Open Font License through Fontsource.
 
 PokéKnow is a free, non-commercial fan project. It is not affiliated with, endorsed or sponsored by Nintendo, Creatures Inc., GAME FREAK or The Pokémon Company. Pokémon and Pokémon character names are trademarks of their respective owners.

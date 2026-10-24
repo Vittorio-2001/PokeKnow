@@ -27,7 +27,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+
+    <!-- Icona: "Pokedex" di Those Icons su Icons8 (https://icons8.com/icon/ih6hQU67d27H/pokedex) -->
+    <link rel="icon" href={href('favicon.ico')} sizes="32x32" />
     <link rel="icon" href={href('favicon.svg')} type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={href('apple-touch-icon.png')} />
+    <link rel="manifest" href={href('manifest.webmanifest')} />
+    <meta name="theme-color" content="#000000" />
+
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <link rel="preconnect" href="https://raw.githubusercontent.com" />
@@ -55,6 +62,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
           ispirati alle interfacce dei giochi di ogni epoca.
         </p>
         <p>Dati e sprite: <a href="https://pokeapi.co">PokéAPI</a>.</p>
+        <p>
+          Icona: <a href="https://icons8.com/icon/ih6hQU67d27H/pokedex">Pokedex</a> di Those Icons su
+          <a href="https://icons8.com">Icons8</a>.
+        </p>
       </div>
     </footer>
   </body>
