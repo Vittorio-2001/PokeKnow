@@ -1,0 +1,132 @@
+---
+import Base from '../layouts/Base.astro';
+import index from '../data/generated/index.json';
+import { TYPES, TYPE_BY_SLUG, padId, text, type IndexEntry } from '../lib/data';
+import { defaultSpriteUrl, typeChip } from '../lib/render';
+
+const list = index as IndexEntry[];
+---
+
+<Base
+  title="PokéKnow — un Pokédex per ogni generazione"
+  description="Cerca un Pokémon e scopri tipi, debolezze, statistiche, abilità e voce del Pokédex in ogni gioco, dal Game Boy Advance a oggi."
+>
+  <section class="wrap finder" id="cerca">
+    <h1 class="finder__title display">Cerca un Pokémon</h1>
+    <p class="finder__lead">Un Pokédex per ogni generazione: apri un Pokémon, scegli il gioco e la scheda cambia con lui.</p>
+
+    <div class="finder__field px">
+      <label class="sr-only" for="q">Nome o numero del Pokémon</label>
+      <input
+        id="q"
+        type="search"
+        placeholder="Nome o numero, per esempio Gengar o 94"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <output class="finder__count" id="count" for="q" aria-live="polite">{list.length} Pokémon</output>
+    </div>
+
+    <fieldset class="filters">
+      <legend>Filtra per tipo</legend>
+      {
+        TYPES.map((t) => (
+          <button class="filter" type="button" data-type={t.slug} aria-pressed="false">
+            <Fragment set:html={typeChip(t.slug, 'sm')} />
+          </button>
+        ))
+      }
+    </fieldset>
+  </section>
+
+  <section class="wrap">
+    <h2 class="sr-only">Elenco</h2>
+    <ul class="grid" id="grid">
+      {
+        list.map((p) => (
+          <li data-name={p.name.toLowerCase()} data-id={p.id} data-types={p.types.join(' ')}>
+            <a href={`/pokemon/${p.slug}/`}>
+              <img
+                class="pixelated"
+                src={defaultSpriteUrl(p.id)}
+                alt=""
+                width="96"
+                height="96"
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="grid__n">#{padId(p.id)}</span>
+              <span class="grid__name">{p.name}</span>
+              <span class="grid__types">
+                {p.types.map((slug) => (
+                  <span style={`--type:${TYPE_BY_SLUG.get(slug)?.color}`} title={text(TYPE_BY_SLUG.get(slug)?.name)} />
+                ))}
+                <span class="sr-only">Tipo {p.types.map((s) => text(TYPE_BY_SLUG.get(s)?.name)).join(' e ')}</span>
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="empty" id="empty" hidden>Nessun Pokémon corrisponde alla ricerca. Prova con un altro nome o togli un filtro.</p>
+  </section>
+</Base>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>('#q')!;
+  const count = document.querySelector<HTMLOutputElement>('#count')!;
+  const empty = document.querySelector<HTMLElement>('#empty')!;
+  const items = [...document.querySelectorAll<HTMLLIElement>('#grid li')];
+  const filters = [...document.querySelectorAll<HTMLButtonElement>('.filter')];
+  const active = new Set<string>();
+
+  // Normalizza accenti e simboli: "nidoran" trova anche Nidoran♀ e Nidoran♂.
+  const norm = (s: string) => s.normalize('NFD').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+  const names = new Map(items.map((li) => [li, norm(li.dataset.name ?? '')]));
+
+  function apply() {
+    const q = norm(input.value.trim());
+    const asNumber = /^\d+$/.test(q) ? Number(q) : null;
+    let shown = 0;
+    for (const li of items) {
+      const matchesText = !q || (asNumber !== null ? Number(li.dataset.id) === asNumber : names.get(li)!.includes(q));
+      const types = (li.dataset.types ?? '').split(' ');
+      const matchesType = [...active].every((t) => types.includes(t));
+      const visible = matchesText && matchesType;
+      li.hidden = !visible;
+      if (visible) shown++;
+    }
+    count.textContent = `${shown} Pokémon`;
+    empty.hidden = shown > 0;
+
+    const params = new URLSearchParams();
+    if (input.value.trim()) params.set('q', input.value.trim());
+    if (active.size) params.set('tipo', [...active].join(','));
+    const qs = params.toString();
+    history.replaceState(null, '', qs ? `?${qs}#cerca` : location.pathname);
+  }
+
+  for (const button of filters) {
+    button.addEventListener('click', () => {
+      const t = button.dataset.type!;
+      if (active.has(t)) active.delete(t);
+      else active.add(t);
+      button.setAttribute('aria-pressed', String(active.has(t)));
+      apply();
+    });
+  }
+
+  input.addEventListener('input', apply);
+
+  // Ripristina la ricerca dall'URL (link condivisibili, tasto indietro).
+  const params = new URLSearchParams(location.search);
+  if (params.has('q')) input.value = params.get('q')!;
+  for (const t of (params.get('tipo') ?? '').split(',').filter(Boolean)) {
+    const button = filters.find((b) => b.dataset.type === t);
+    if (button) {
+      active.add(t);
+      button.setAttribute('aria-pressed', 'true');
+    }
+  }
+  if (params.size) apply();
+</script>

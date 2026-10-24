@@ -1,0 +1,336 @@
+---
+import Base from '../../layouts/Base.astro';
+import pokemonJson from '../../data/generated/pokemon.json';
+import abilitiesJson from '../../data/generated/abilities.json';
+import { GAMES, VERSIONS, type Ability, type Pokemon, defaultVersion, isPresent, padId, text } from '../../lib/data';
+import { renderView, roman } from '../../lib/render';
+import { themeFor } from '../../lib/themes';
+
+export function getStaticPaths() {
+  const all = pokemonJson as Pokemon[];
+  return all.map((pokemon, i) => ({
+    params: { slug: pokemon.slug },
+    props: {
+      pokemon,
+      prev: all[i - 1] ? { slug: all[i - 1].slug, name: text(all[i - 1].name), id: all[i - 1].id } : null,
+      next: all[i + 1] ? { slug: all[i + 1].slug, name: text(all[i + 1].name), id: all[i + 1].id } : null,
+    },
+  }));
+}
+
+interface Neighbour {
+  slug: string;
+  name: string;
+  id: number;
+}
+
+interface Props {
+  pokemon: Pokemon;
+  prev: Neighbour | null;
+  next: Neighbour | null;
+}
+
+const { pokemon, prev, next } = Astro.props;
+const allAbilities = abilitiesJson as Record<string, Ability>;
+
+// Solo le abilità che servono a questa pagina finiscono nel payload del browser.
+const abilityIds = new Set(Object.values(pokemon.abilitiesByGen).flat().map((a) => String(a.id)));
+const abilities = Object.fromEntries([...abilityIds].map((id) => [id, allAbilities[id]]));
+
+const version = defaultVersion(pokemon);
+const view = renderView(pokemon, abilities, version);
+const name = text(pokemon.name);
+const genus = text(pokemon.genus);
+
+const generations = [...new Set(GAMES.map((g) => g.gen))];
+// `<` codificato: il JSON vive dentro un tag <script> e non deve poterlo chiudere.
+const payload = JSON.stringify({ pokemon, abilities, defaultVersion: version }).replaceAll('<', '\\u003c');
+
+// Per lo script nell'<head>: tema di ogni versione in cui il Pokémon è presente.
+const themeByVersion = Object.fromEntries(
+  VERSIONS.filter((v) => isPresent(pokemon, v.game.group)).map((v) => {
+    const t = themeFor(v.game.group);
+    return [v.slug, [t.key, t.pixel ? 'pixel' : 'smooth']];
+  }),
+);
+---
+
+<Base
+  title={`${name} — PokéKnow`}
+  description={`${name}, ${genus}: tipi, debolezze, statistiche, abilità e voce del Pokédex in ogni gioco.`}
+  theme={view.theme.key}
+  version={version}
+  pixel={view.theme.pixel}
+>
+  <!-- Applica il tema del gioco scelto prima del primo disegno: niente lampo del tema sbagliato. -->
+  <script is:inline slot="head" define:vars={{ themeByVersion }}>
+    try {
+      const pick =
+        new URLSearchParams(location.search).get('gioco') || localStorage.getItem('pokeknow:gioco');
+      const t = pick && themeByVersion[pick];
+      if (t) {
+        const root = document.documentElement;
+        root.dataset.theme = t[0];
+        root.dataset.sprite = t[1];
+        root.dataset.version = pick;
+      }
+    } catch {}
+  </script>
+
+  <article class="wrap entry" data-entry>
+    <header class="entry-head">
+      <div>
+        <p class="entry-head__n">#{padId(pokemon.id)}</p>
+        <h1 class="entry-head__name display">{name}</h1>
+        <p class="entry-head__genus">
+          {genus}
+          {pokemon.legendary && <span class="tag">Leggendario</span>}
+          {pokemon.mythical && <span class="tag">Misterioso</span>}
+        </p>
+      </div>
+      <div class="game-picker">
+        <label for="game">Gioco</label>
+        <select id="game">
+          {
+            generations.map((gen) => (
+              <optgroup label={`Generazione ${roman(gen)}`}>
+                {GAMES.filter((g) => g.gen === gen).flatMap((g) =>
+                  g.versions.map((v) => (
+                    <option value={v.slug} selected={v.slug === version} disabled={!isPresent(pokemon, g.group)}>
+                      {text(v.name)}
+                      {!isPresent(pokemon, g.group) ? ' (assente)' : ''}
+                    </option>
+                  )),
+                )}
+              </optgroup>
+            ))
+          }
+        </select>
+        <p class="game-picker__theme" data-theme-label>{view.theme.label}</p>
+      </div>
+    </header>
+
+    <div class="stage-row">
+      <div class="stage">
+        <img
+          class="pixelated"
+          data-stage-sprite
+          src={view.sprite}
+          alt={`Sprite di ${name} in ${view.versionName}`}
+          width="96"
+          height="96"
+        />
+      </div>
+
+      <div class="stage-side">
+        <div class="dialog" data-dialog>
+          <p class="dialog__game" data-version-name>Pokédex di {view.versionName}</p>
+          <div data-slot="flavor" set:html={view.slots.flavor} />
+          <span class="dialog__cursor" aria-hidden="true"></span>
+        </div>
+
+        <div class="facts">
+          <div data-slot="types" set:html={view.slots.types} />
+          <dl>
+            <div>
+              <dt>Altezza</dt>
+              <dd>{pokemon.height.toLocaleString('it-IT')} m</dd>
+            </div>
+            <div>
+              <dt>Peso</dt>
+              <dd>{pokemon.weight.toLocaleString('it-IT')} kg</dd>
+            </div>
+            <div>
+              <dt>Debutto</dt>
+              <dd>Gen {roman(pokemon.gen)}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <section class="section" aria-labelledby="h-defense">
+      <div class="section__head">
+        <h2 class="section__title display" id="h-defense">In difesa</h2>
+        <p class="section__aside" data-slot="generation" set:html={view.slots.generation} />
+      </div>
+      <div data-slot="defense" set:html={view.slots.defense} />
+    </section>
+
+    <section class="section" aria-labelledby="h-offense">
+      <div class="section__head">
+        <h2 class="section__title display" id="h-offense">In attacco</h2>
+        <p class="section__aside">Efficacia delle mosse dello stesso tipo del Pokémon</p>
+      </div>
+      <div data-slot="offense" set:html={view.slots.offense} />
+    </section>
+
+    <div class="two-col">
+      <section class="section" aria-labelledby="h-stats">
+        <div class="section__head">
+          <h2 class="section__title display" id="h-stats">Statistiche base</h2>
+        </div>
+        <div data-slot="stats" set:html={view.slots.stats} />
+      </section>
+
+      <section class="section" aria-labelledby="h-abilities">
+        <div class="section__head">
+          <h2 class="section__title display" id="h-abilities">Abilità</h2>
+        </div>
+        <div data-slot="abilities" set:html={view.slots.abilities} />
+      </section>
+    </div>
+
+    <section class="section" aria-labelledby="h-dex">
+      <div class="section__head">
+        <h2 class="section__title display" id="h-dex">Pokédex regionale</h2>
+      </div>
+      <div data-slot="dex" set:html={view.slots.dex} />
+    </section>
+
+    <nav class="pager" aria-label="Pokémon vicini">
+      {
+        prev && (
+          <a href={`/pokemon/${prev.slug}/`} rel="prev">
+            <span class="pager__dir">Precedente</span>
+            <span class="pager__name">
+              #{padId(prev.id)} {prev.name}
+            </span>
+          </a>
+        )
+      }
+      {
+        next && (
+          <a class="pager__next" href={`/pokemon/${next.slug}/`} rel="next">
+            <span class="pager__dir">Successivo</span>
+            <span class="pager__name">
+              #{padId(next.id)} {next.name}
+            </span>
+          </a>
+        )
+      }
+    </nav>
+  </article>
+
+  <script type="application/json" id="payload" set:html={payload} />
+</Base>
+
+<script>
+  import { VERSION_BY_SLUG, isPresent, type Ability, type Pokemon } from '../../lib/data';
+  import { defaultSpriteUrl, renderView } from '../../lib/render';
+
+  const STORAGE_KEY = 'pokeknow:gioco';
+  const PARAM = 'gioco';
+
+  const { pokemon, abilities, defaultVersion } = JSON.parse(document.getElementById('payload')!.textContent!) as {
+    pokemon: Pokemon;
+    abilities: Record<string, Ability>;
+    defaultVersion: string;
+  };
+
+  const root = document.documentElement;
+  const select = document.querySelector<HTMLSelectElement>('#game')!;
+  const sprite = document.querySelector<HTMLImageElement>('.stage img')!;
+  const dialog = document.querySelector<HTMLElement>('[data-dialog]')!;
+  const versionLabel = document.querySelector<HTMLElement>('[data-version-name]')!;
+  const themeLabel = document.querySelector<HTMLElement>('[data-theme-label]')!;
+  const slots = new Map(
+    [...document.querySelectorAll<HTMLElement>('[data-slot]')].map((el) => [el.dataset.slot!, el]),
+  );
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const name = pokemon.name.it ?? pokemon.name.en ?? '';
+
+  function readStorage(): string | null {
+    try {
+      return localStorage.getItem(STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  function writeStorage(value: string) {
+    try {
+      localStorage.setItem(STORAGE_KEY, value);
+    } catch {
+      /* navigazione privata: pazienza, resta l'URL */
+    }
+  }
+
+  const usable = (slug: string | null): slug is string => {
+    const v = slug ? VERSION_BY_SLUG.get(slug) : undefined;
+    return !!v && isPresent(pokemon, v.game.group);
+  };
+
+  // Fa comparire il testo carattere per carattere, come nei giochi. Un clic lo completa.
+  let typing = 0;
+  let skip: AbortController | null = null;
+  function typeOut(el: HTMLElement | null) {
+    cancelAnimationFrame(typing);
+    skip?.abort();
+    dialog.classList.remove('is-typing');
+    if (!el || reduceMotion) return;
+    const full = el.textContent ?? '';
+    const start = performance.now();
+    const msPerChar = 18;
+    dialog.classList.add('is-typing');
+    el.setAttribute('aria-label', full);
+    const step = (now: number) => {
+      const n = Math.min(full.length, Math.floor((now - start) / msPerChar));
+      el.textContent = full.slice(0, n);
+      if (n < full.length) typing = requestAnimationFrame(step);
+      else {
+        dialog.classList.remove('is-typing');
+        el.removeAttribute('aria-label');
+      }
+    };
+    typing = requestAnimationFrame(step);
+    skip = new AbortController();
+    dialog.addEventListener(
+      'click',
+      () => {
+        cancelAnimationFrame(typing);
+        el.textContent = full;
+        el.removeAttribute('aria-label');
+        dialog.classList.remove('is-typing');
+      },
+      { once: true, signal: skip.signal },
+    );
+  }
+
+  function show(slug: string, animate: boolean) {
+    const view = renderView(pokemon, abilities, slug);
+    for (const [key, html] of Object.entries(view.slots)) {
+      const el = slots.get(key);
+      if (el) el.innerHTML = html;
+    }
+
+    root.dataset.theme = view.theme.key;
+    root.dataset.sprite = view.theme.pixel ? 'pixel' : 'smooth';
+    root.dataset.version = slug;
+    themeLabel.textContent = view.theme.label;
+
+    versionLabel.textContent = `Pokédex di ${view.versionName}`;
+    sprite.alt = `Sprite di ${name} in ${view.versionName}`;
+    sprite.onerror = () => {
+      sprite.onerror = null;
+      sprite.src = defaultSpriteUrl(pokemon.id);
+    };
+    sprite.src = view.sprite;
+    select.value = slug;
+    if (animate) typeOut(slots.get('flavor')!.querySelector<HTMLElement>('.dialog__text:not(.dialog__text--empty)'));
+  }
+
+  select.addEventListener('change', () => {
+    const slug = select.value;
+    writeStorage(slug);
+    const url = new URL(location.href);
+    url.searchParams.set(PARAM, slug);
+    history.replaceState(null, '', url);
+    show(slug, true);
+  });
+
+  // Priorità: gioco nell'URL, poi l'ultimo scelto dall'utente, poi quello di default della pagina.
+  const fromUrl = new URLSearchParams(location.search).get(PARAM);
+  const initial = [fromUrl, readStorage()].find(usable);
+  if (initial && initial !== defaultVersion) show(initial, false);
+</script>

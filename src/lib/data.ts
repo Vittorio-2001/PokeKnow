@@ -1,0 +1,103 @@
+// Tipi dei dati generati da scripts/fetch-data.mjs.
+import typesJson from '../data/generated/types.json';
+import gamesJson from '../data/generated/games.json';
+
+export type Lang = 'it' | 'en';
+export type Localized = Partial<Record<Lang, string | null>>;
+
+export interface TypeInfo {
+  slug: string;
+  gen: number;
+  name: Localized;
+  color: string;
+}
+
+/** chart[gen][attacco][difesa] = moltiplicatore; le coppie neutre (×1) non sono salvate. */
+export type TypeChart = Record<string, Record<string, Record<string, number>>>;
+
+export interface GameVersion {
+  slug: string;
+  id: number;
+  name: Localized;
+}
+
+export interface Game {
+  group: string;
+  groupId: number;
+  gen: number;
+  order: number;
+  nationalLimit: number | null;
+  dexes: number[];
+  versions: GameVersion[];
+}
+
+export interface AbilityRef {
+  id: number;
+  hidden: boolean;
+}
+
+export interface Ability {
+  name: Localized;
+  desc: Localized;
+}
+
+export interface RegionalEntry {
+  dex: string;
+  n: number;
+}
+
+export interface Pokemon {
+  id: number;
+  slug: string;
+  name: Localized;
+  genus: Localized;
+  gen: number;
+  height: number;
+  weight: number;
+  legendary: boolean;
+  mythical: boolean;
+  typesByGen: Record<string, string[]>;
+  statsByGen: Record<string, number[]>;
+  abilitiesByGen: Record<string, AbilityRef[]>;
+  flavor: Record<string, Localized>;
+  /** Gruppi di giochi in cui è presente, con l'eventuale numero nei Pokédex regionali. */
+  games: Record<string, RegionalEntry[]>;
+}
+
+export interface IndexEntry {
+  id: number;
+  slug: string;
+  name: string;
+  types: string[];
+}
+
+export const TYPES = (typesJson as { types: TypeInfo[] }).types;
+export const CHART = (typesJson as { chart: TypeChart }).chart;
+export const GAMES = gamesJson as Game[];
+
+export const TYPE_BY_SLUG = new Map(TYPES.map((t) => [t.slug, t]));
+
+/** Ogni versione (Rubino, Zaffiro…) con il suo gruppo di giochi. */
+export const VERSIONS = GAMES.flatMap((game) => game.versions.map((version) => ({ ...version, game })));
+export const VERSION_BY_SLUG = new Map(VERSIONS.map((v) => [v.slug, v]));
+
+export function text(value: Localized | undefined, lang: Lang = 'it'): string {
+  if (!value) return '';
+  return value[lang] ?? value.it ?? value.en ?? '';
+}
+
+export function isPresent(pokemon: Pokemon, group: string): boolean {
+  return group in pokemon.games;
+}
+
+/** Il gioco più recente in cui il Pokémon c'è e ha una voce del Pokédex; altrimenti il più recente in cui c'è. */
+export function defaultVersion(pokemon: Pokemon): string {
+  const present = VERSIONS.filter((v) => isPresent(pokemon, v.game.group));
+  const withText = present.filter((v) => pokemon.flavor[v.slug]);
+  const pick = (withText.length ? withText : present).at(-1) ?? VERSIONS.at(-1)!;
+  return pick.slug;
+}
+
+export function padId(id: number): string {
+  return String(id).padStart(4, '0');
+}
