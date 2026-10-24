@@ -13,6 +13,8 @@ import {
 import { t } from './i18n';
 import { defensiveProfile, offensiveProfile } from './typechart';
 import { type Theme, themeFor } from './themes';
+import type { Build, BuildMove } from './builds';
+import { type WhereData, evolutionsFor, howItEvolves } from './where';
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
 
@@ -29,15 +31,21 @@ const SPRITE_FILE: Record<string, string> = {
   'black-2-white-2': 'versions/generation-v/black-white/animated/{id}.gif',
 };
 
-export function spriteUrl(id: number, group?: string): string {
-  if (!group) return `${SPRITES}/${id}.png`;
+/** Sprite di un Pokémon nel gioco scelto; con shiny, la versione cromatica dello stesso set. */
+export function spriteUrl(id: number, group?: string, shiny = false): string {
+  const s = shiny ? 'shiny/' : '';
+  if (!group) return `${SPRITES}/${s}${id}.png`;
   const file = SPRITE_FILE[group];
-  if (file) return `${SPRITES}/${file.replace('{id}', String(id))}`;
-  return themeFor(group).pixel ? `${SPRITES}/${id}.png` : `${SPRITES}/other/home/${id}.png`;
+  if (file) {
+    // la cartella "shiny" va subito prima del nome del file: …/emerald/shiny/94.png
+    const path = file.replace('{id}', String(id)).replace(/([^/]+)$/, `${s}$1`);
+    return `${SPRITES}/${path}`;
+  }
+  return themeFor(group).pixel ? `${SPRITES}/${s}${id}.png` : `${SPRITES}/other/home/${s}${id}.png`;
 }
 
-export function defaultSpriteUrl(id: number): string {
-  return spriteUrl(id);
+export function defaultSpriteUrl(id: number, shiny = false): string {
+  return spriteUrl(id, undefined, shiny);
 }
 
 // Giochi in cui le abilità non esistono come meccanica.
@@ -77,6 +85,7 @@ export interface RenderedView {
   gen: number;
   theme: Theme;
   sprite: string;
+  spriteShiny: string;
   slots: Record<string, string>;
 }
 
@@ -86,6 +95,8 @@ export function renderView(
   abilities: Record<string, Ability>,
   versionSlug: string,
   lang: Lang,
+  builds: Record<string, Build | null> = {},
+  where?: WhereData,
 ): RenderedView {
   const version = VERSION_BY_SLUG.get(versionSlug);
   if (!version) throw new Error(`Versione sconosciuta: ${versionSlug}`);
@@ -101,6 +112,7 @@ export function renderView(
     gen,
     theme: themeFor(game.group),
     sprite: spriteUrl(pokemon.id, game.group),
+    spriteShiny: spriteUrl(pokemon.id, game.group, true),
     slots: {
       flavor: renderFlavor(pokemon, versionSlug, versionName, lang),
       types: chips(types, lang, 'md'),
@@ -112,6 +124,8 @@ export function renderView(
         ? `<p class="muted">${esc(ui.noAbilitiesInGame(versionName))}</p>`
         : renderAbilities(pokemon.abilitiesByGen[gen] ?? [], abilities, lang),
       dex: renderDex(pokemon, game.group, versionName, name, lang),
+      where: where ? renderWhere(where, versionSlug, game.order, versionName, lang) : '',
+      build: renderBuild(builds[game.group], game.group in builds, gen, versionName, lang),
     },
   };
 }
@@ -282,4 +296,120 @@ function renderDex(pokemon: Pokemon, group: string, versionName: string, name: s
         `<li><span class="dex__name">${esc(text(e.dex, lang))}</span><span class="dex__n">${esc(ui.dexNumber(e.n))}</span></li>`,
     )
     .join('')}</ul>`;
+}
+
+/** Come si impara una mossa, nella lingua della pagina: "Liv. 32", "Evoluzione", "MT24", "MN04", "DT15". */
+export function howLearned(how: number | string, gen: number, lang: Lang): string {
+  const ui = t(lang);
+  if (typeof how === 'number') return how === 0 ? ui.learnEvolution : ui.learnLevel(Math.max(how, 1));
+  const match = /^(tm|hm|tr)(\d+)$/.exec(how);
+  if (!match) return how.toUpperCase();
+  const [, kind, n] = match;
+  // da Scarlatto e Violetto le MT hanno tre cifre (MT001)
+  return `${ui.machines[kind]}${n.padStart(kind === 'tm' && gen >= 9 ? 3 : 2, '0')}`;
+}
+
+function renderMove(move: BuildMove, gen: number, lang: Lang): string {
+  const ui = t(lang);
+  const meta =
+    move.cls === 'status'
+      ? `<span>${esc(ui.moveClasses.status)}</span><span class="tag">${esc(ui.setupMove)}</span>`
+      : `<span>${esc(ui.moveClasses[move.cls])}</span>` +
+        `<span>${esc(ui.power)} ${move.power ?? '—'}</span>` +
+        `<span>${esc(ui.accuracy)} ${move.acc ?? '—'}</span>`;
+  return `<li class="move">
+    <span class="move__type">${typeChip(move.type, lang, 'sm')}</span>
+    <span class="move__name">${esc(text(move.name, lang))}</span>
+    <span class="move__meta">${meta}</span>
+    <span class="move__how">${esc(howLearned(move.how, gen, lang))}</span>
+  </li>`;
+}
+
+function renderBuild(build: Build | null | undefined, hasData: boolean, gen: number, versionName: string, lang: Lang): string {
+  const ui = t(lang);
+  if (!hasData) return `<p class="muted">${esc(ui.noBuildData(versionName))}</p>`;
+  if (!build) return `<p class="muted">${esc(ui.noBuildMoves)}</p>`;
+  const role = ui.roles[build.role] + (build.speed ? `, ${ui.speeds[build.speed]}` : '');
+  const up = ui.statLabels[build.nature.up];
+  const down = ui.statLabels[build.nature.down];
+  return `<div class="build">
+    <div class="build__summary">
+      <p class="build__role">${esc(role)}</p>
+      <p class="build__nature">
+        <span class="build__label">${esc(ui.suggestedNature)}</span>
+        <strong>${esc(text(build.nature.name, lang))}</strong>
+        <span class="build__effect">+${esc(up)}, −${esc(down)}</span>
+      </p>
+    </div>
+    <ul class="build__moves">${build.moves.map((m) => renderMove(m, gen, lang)).join('')}</ul>
+    ${
+      build.coverage.length
+        ? `<div class="build__coverage"><span class="build__label">${esc(ui.coverage)}</span>${chips(build.coverage, lang)}</div>`
+        : ''
+    }
+    <p class="build__note">${esc(ui.buildNote)}</p>
+  </div>`;
+}
+
+// Modi di incontro in cui la probabilità non ha senso: il Pokémon è lì e basta.
+const SURE = new Set(['gift', 'gift-egg', 'static', 'npc-trade', 'roaming-grass', 'roaming-water', 'devon-scope']);
+const MAX_ROWS = 8;
+
+const SLOT2_GAMES: Record<string, Record<Lang, string>> = {
+  ruby: { it: 'Rubino', en: 'Ruby' },
+  sapphire: { it: 'Zaffiro', en: 'Sapphire' },
+  emerald: { it: 'Smeraldo', en: 'Emerald' },
+  firered: { it: 'Rosso Fuoco', en: 'FireRed' },
+  leafgreen: { it: 'Verde Foglia', en: 'LeafGreen' },
+};
+
+/** Condizioni alternative in una frase: "con Rubino o Zaffiro nello slot GBA", "con la pioggia o con il temporale". */
+export function conditionText(conds: string[], lang: Lang): string {
+  const ui = t(lang);
+  const or = lang === 'it' ? ' o ' : ' or ';
+  const slot2 = conds.filter((c) => c.startsWith('slot2-')).map((c) => SLOT2_GAMES[c.slice(6)]?.[lang]).filter(Boolean);
+  const others = conds.filter((c) => !c.startsWith('slot2-')).map((c) => ui.conditions[c]).filter(Boolean);
+  const parts = [...others];
+  if (slot2.length) parts.unshift(lang === 'it' ? `con ${slot2.join(or)} nello slot GBA` : `with ${slot2.join(or)} in the GBA slot`);
+  return parts.join(or);
+}
+
+function renderWhere(where: WhereData, versionSlug: string, order: number, versionName: string, lang: Lang): string {
+  const ui = t(lang);
+  const typeName = (slug: string) => text(TYPE_BY_SLUG.get(slug)?.name, lang);
+  const evolutions = evolutionsFor(where.evolutions, order);
+  const evoLines = [
+    ...new Set(evolutions.map((e) => ui.evolvesFrom(text(e.fromName, lang), howItEvolves(e, lang, typeName)))),
+  ];
+  const evoHtml = evoLines.length ? `<ul class="where__evo">${evoLines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '';
+
+  if (!where.versionsWithData.includes(versionSlug)) {
+    return `${evoHtml}<p class="muted">${esc(ui.whereNoData(versionName))}</p>`;
+  }
+  const list = where.encounters[versionSlug] ?? [];
+  if (!list.length) {
+    return `${evoHtml}<p class="muted">${esc(ui.whereNotWild)} ${evoLines.length ? '' : esc(ui.whereOtherWays)}</p>`;
+  }
+
+  const row = (e: (typeof list)[number]) => {
+    const place = text(where.areas[e.a], lang) || '—';
+    const method = ui.methods[e.m] ?? e.m.replaceAll('-', ' ');
+    const levels = e.min === e.max ? `${e.min}` : `${e.min}–${e.max}`;
+    const conds = conditionText(e.c, lang);
+    const showRate = !SURE.has(e.m) && e.rate > 0 && e.rate < 100;
+    const rate = `<span class="where__rate">${showRate ? `${e.rate}%` : ''}</span>`;
+    return `<li class="where__row">
+      <span class="where__place">${esc(place)}</span>
+      <span class="where__method">${esc(method)}${conds ? ` <span class="where__cond">${esc(conds)}</span>` : ''}</span>
+      <span class="where__lv">${esc(ui.learnLevel(Number(e.min)).replace(/\d+$/, levels))}</span>
+      ${rate}
+    </li>`;
+  };
+
+  const first = list.slice(0, MAX_ROWS).map(row).join('');
+  const rest = list.slice(MAX_ROWS);
+  const more = rest.length
+    ? `<details class="where__more"><summary>${esc(ui.moreLocations(rest.length))}</summary><ul class="where__list">${rest.map(row).join('')}</ul></details>`
+    : '';
+  return `${evoHtml}<ul class="where__list">${first}</ul>${more}`;
 }

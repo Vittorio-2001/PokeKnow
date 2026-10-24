@@ -5,6 +5,7 @@ import '../styles/themes.css';
 import type { Lang } from '../lib/data';
 import { DEFAULT_LANG, LANGS, LANG_NAMES, localePath, t } from '../lib/i18n';
 import { href } from '../lib/url';
+import { defaultSpriteUrl } from '../lib/render';
 
 interface Props {
   title: string;
@@ -16,10 +17,29 @@ interface Props {
   theme?: string;
   version?: string;
   pixel?: boolean;
+  /** Solo in home: interruttore tema chiaro/scuro con Solrock e Lunatone. */
+  modeToggle?: boolean;
 }
 
-const { title, description, lang, path, theme, version, pixel = true } = Astro.props;
+const { title, description, lang, path, theme, version, pixel = true, modeToggle = false } = Astro.props;
 const ui = t(lang);
+
+// Tema chiaro/scuro della home: applicato prima del primo disegno, poi l'interruttore.
+const MODE_EARLY = `try { const m = localStorage.getItem('pokeknow:mode'); if (m === 'light' || m === 'dark') document.documentElement.dataset.mode = m; } catch {}`;
+const MODE_TOGGLE = `(() => {
+  const root = document.documentElement;
+  const button = document.querySelector('[data-mode-toggle]');
+  const system = matchMedia('(prefers-color-scheme: dark)');
+  const isDark = () => (root.dataset.mode ? root.dataset.mode === 'dark' : system.matches);
+  const sync = () => button.setAttribute('aria-label', isDark() ? button.dataset.labelLight : button.dataset.labelDark);
+  button.addEventListener('click', () => {
+    root.dataset.mode = isDark() ? 'light' : 'dark';
+    try { localStorage.setItem('pokeknow:mode', root.dataset.mode); } catch {}
+    sync();
+  });
+  system.addEventListener('change', sync);
+  sync();
+})();`;
 const absolute = (l: Lang) => new URL(href(localePath(l, path)), Astro.site).href;
 ---
 
@@ -28,6 +48,11 @@ const absolute = (l: Lang) => new URL(href(localePath(l, path)), Astro.site).hre
   <head>
     <meta charset="utf-8" />
     <script is:inline>document.documentElement.classList.add('js');</script>
+    {
+      modeToggle && (
+        <script is:inline set:html={MODE_EARLY} />
+      )
+    }
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -54,6 +79,21 @@ const absolute = (l: Lang) => new URL(href(localePath(l, path)), Astro.site).hre
         <a class="logo display" href={href(localePath(lang))}>PokéKnow</a>
         <nav class="masthead__nav" aria-label={ui.navMain}>
           <a href={href(localePath(lang, '#cerca'))}>{ui.navSearch}</a>
+          {
+            modeToggle && (
+              <button
+                class="mode-toggle"
+                type="button"
+                data-mode-toggle
+                data-label-dark={ui.toDark}
+                data-label-light={ui.toLight}
+                aria-label={ui.toDark}
+              >
+                <img class="pixelated mode-toggle__sun" src={defaultSpriteUrl(338)} alt="" width="40" height="40" />
+                <img class="pixelated mode-toggle__moon" src={defaultSpriteUrl(337)} alt="" width="40" height="40" />
+              </button>
+            )
+          }
           <span class="langs" aria-label={ui.switchLanguage}>
             {
               LANGS.map((l) =>
@@ -87,5 +127,10 @@ const absolute = (l: Lang) => new URL(href(localePath(l, path)), Astro.site).hre
         </p>
       </div>
     </footer>
+    {
+      modeToggle && (
+        <script is:inline set:html={MODE_TOGGLE} />
+      )
+    }
   </body>
 </html>

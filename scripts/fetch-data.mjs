@@ -74,6 +74,11 @@ const FILES = [
   'types', 'type_names', 'type_efficacy', 'type_efficacy_past',
   'versions', 'version_groups', 'version_names',
   'pokedex_version_groups', 'pokemon_dex_numbers',
+  'pokemon_moves', 'moves', 'move_names', 'move_meta', 'move_changelog', 'machines', 'items',
+  'natures', 'nature_names',
+  'encounters', 'encounter_slots', 'encounter_methods', 'encounter_condition_value_map', 'encounter_condition_values',
+  'location_areas', 'location_area_prose', 'locations', 'location_names',
+  'pokemon_evolution', 'evolution_triggers', 'item_names',
 ];
 
 async function exists(path) {
@@ -332,7 +337,277 @@ async function main() {
   await writeFile(join(OUT, 'abilities.json'), JSON.stringify(abilities));
   await writeFile(join(OUT, 'pokemon.json'), JSON.stringify(pokemon));
   await writeFile(join(OUT, 'index.json'), JSON.stringify(index));
+
+  // ---------- Mosse, learnset e nature (per le build) ----------
+  await buildMovesData(csv, games, typeSlug);
+  await buildWhereData(csv, games, typeSlug);
   console.log(`Fatto: ${pokemon.length} Pokémon, ${games.length} giochi, ${types.length} tipi.`);
+}
+
+/**
+ * Learnset per livello e MT/MN di ogni Pokémon in ogni gioco, le mosse con i loro valori storici
+ * e le nature. Le build si calcolano poi in src/lib/builds.ts, dove sono testabili.
+ */
+async function buildMovesData(csv, games, typeSlug) {
+  const groupById = new Map(games.map((g) => [String(g.groupId), g]));
+  const orderById = new Map(csv.version_groups.map((g) => [g.id, Number(g.order)]));
+
+  // MT/MN/DT: numero della macchina e tipo di oggetto (tm, hm, tr) per gruppo di giochi
+  const itemCode = new Map(csv.items.map((i) => [i.id, i.identifier]));
+  const machine = new Map();
+  for (const m of csv.machines) {
+    if (!groupById.has(m.version_group_id)) continue;
+    const code = itemCode.get(m.item_id) ?? 'tm';
+    const kind = code.startsWith('hm') ? 'hm' : code.startsWith('tr') ? 'tr' : 'tm';
+    // in alcuni giochi MN e DT sono numerate da 100 in su (MN01 = 101, DT00 = 100)
+    const raw = Number(m.machine_number);
+    const n = (kind === 'hm' || kind === 'tr') && raw >= 100 ? raw - 100 : raw;
+    machine.set(`${m.version_group_id}:${m.move_id}`, `${kind}${n}`);
+  }
+
+  // learnsets[pokemonId][gruppo] = [[mossa, come]]; come = livello (numero) oppure "tm24", "hm03", "tr12"
+  const learnsets = {};
+  const usedMoves = new Set();
+  for (const r of csv.pokemon_moves) {
+    const id = Number(r.pokemon_id);
+    if (id > LAST_SPECIES) continue;
+    const game = groupById.get(r.version_group_id);
+    if (!game) continue;
+    const method = r.pokemon_move_method_id;
+    if (method !== '1' && method !== '4') continue; // solo livello e macchine
+    const how = method === '1' ? Number(r.level) : machine.get(`${r.version_group_id}:${r.move_id}`);
+    if (how === undefined) continue;
+    const list = ((learnsets[id] ??= {})[game.group] ??= {});
+    const prev = list[r.move_id];
+    // tieni il modo più comodo: il livello più basso, e il livello prima della macchina
+    if (prev === undefined || (typeof how === 'number' && (typeof prev !== 'number' || how < prev))) {
+      list[r.move_id] = how;
+    }
+    usedMoves.add(r.move_id);
+  }
+  for (const byGroup of Object.values(learnsets)) {
+    for (const [group, moves] of Object.entries(byGroup)) {
+      byGroup[group] = Object.entries(moves).map(([m, how]) => [Number(m), how]);
+    }
+  }
+
+  const moveNames = new Map();
+  for (const r of csv.move_names) {
+    const lang = r.local_language_id === '8' ? 'it' : r.local_language_id === '9' ? 'en' : null;
+    if (!lang || !usedMoves.has(r.move_id)) continue;
+    if (!moveNames.has(r.move_id)) moveNames.set(r.move_id, {});
+    moveNames.get(r.move_id)[lang] = r.name;
+  }
+  const meta = new Map(csv.move_meta.map((m) => [m.move_id, m]));
+  const changes = groupBy(csv.move_changelog, 'move_id');
+  const CLASS = { 1: 'status', 2: 'physical', 3: 'special' };
+
+  const moves = {};
+  for (const m of csv.moves) {
+    if (!usedMoves.has(m.id)) continue;
+    const mm = meta.get(m.id);
+    moves[m.id] = {
+      slug: m.identifier,
+      name: moveNames.get(m.id) ?? {},
+      type: typeSlug.get(m.type_id) ?? null,
+      power: num(m.power),
+      acc: num(m.accuracy),
+      cls: CLASS[m.damage_class_id] ?? 'status',
+      minHits: num(mm?.min_hits),
+      maxHits: num(mm?.max_hits),
+      drain: num(mm?.drain) ?? 0,
+      // valori che la mossa aveva PRIMA del gruppo di giochi indicato (per ordine cronologico)
+      past: (changes.get(m.id) ?? [])
+        .map((c) => ({
+          before: orderById.get(c.changed_in_version_group_id) ?? 0,
+          type: c.type_id ? typeSlug.get(c.type_id) ?? null : undefined,
+          power: c.power ? Number(c.power) : undefined,
+          acc: c.accuracy ? Number(c.accuracy) : undefined,
+        }))
+        .sort((a, b) => a.before - b.before),
+    };
+  }
+
+  const STAT_INDEX = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5 }; // id statistica PokéAPI → posizione in statsByGen
+  const natureNames = new Map();
+  for (const r of csv.nature_names) {
+    const lang = r.local_language_id === '8' ? 'it' : r.local_language_id === '9' ? 'en' : null;
+    if (!lang) continue;
+    if (!natureNames.has(r.nature_id)) natureNames.set(r.nature_id, {});
+    natureNames.get(r.nature_id)[lang] = r.name;
+  }
+  const natures = csv.natures.map((n) => ({
+    slug: n.identifier,
+    name: natureNames.get(n.id) ?? {},
+    up: STAT_INDEX[n.increased_stat_id],
+    down: STAT_INDEX[n.decreased_stat_id],
+  }));
+
+  await writeFile(join(OUT, 'learnsets.json'), JSON.stringify(learnsets));
+  await writeFile(join(OUT, 'moves.json'), JSON.stringify(moves));
+  await writeFile(join(OUT, 'natures.json'), JSON.stringify(natures));
+  console.log(`Mosse: ${Object.keys(moves).length}, learnset per ${Object.keys(learnsets).length} Pokémon.`);
+}
+
+/** Toglie i campi vuoti: i JSON restano piccoli. */
+function compact(obj) {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== false && v !== undefined));
+}
+
+/** Nome italiano e inglese da una tabella *_names; l'italiano manca spesso. */
+function namesBy(rows, idField) {
+  const map = new Map();
+  for (const r of rows) {
+    const lang = r.local_language_id === '8' ? 'it' : r.local_language_id === '9' ? 'en' : null;
+    if (!lang) continue;
+    if (!map.has(r[idField])) map.set(r[idField], {});
+    map.get(r[idField])[lang] = r.name;
+  }
+  return map;
+}
+
+// Parti di una zona (piani, lati): per l'italiano si traducono le parole singole; le descrizioni
+// composte ("2f right room") restano in inglese, per non produrre frasi innaturali.
+const AREA_WORDS_IT = {
+  north: 'nord', south: 'sud', east: 'est', west: 'ovest', inside: 'interno', outside: 'esterno',
+  entrance: 'ingresso', back: 'fondo', front: 'davanti', upper: 'alto', lower: 'basso', center: 'centro',
+  room: 'stanza', area: 'area', basement: 'seminterrato', summit: 'vetta', cave: 'grotta', depths: 'profondità',
+};
+
+function areaSuffix(identifier, lang) {
+  if (!identifier) return '';
+  return identifier
+    .split('-')
+    .map((w) => (/^b?\d+f$/.test(w) ? w.toUpperCase() : w))
+    .map((w, _, all) => (lang === 'it' && all.length === 1 ? AREA_WORDS_IT[w] ?? w : w))
+    .join(' ');
+}
+
+/**
+ * Dove si trova ogni Pokémon in ogni versione (zona, modo, livelli, probabilità, condizioni)
+ * e come si evolve. Le zone hanno spesso solo il nome inglese: "Route 12" diventa "Percorso 12".
+ */
+async function buildWhereData(csv, games, typeSlug) {
+  // versioni del selettore, con i DLC ricondotti al gioco base
+  const versionSlug = new Map();
+  const ourVersions = new Set(games.flatMap((g) => g.versions.map((v) => v.slug)));
+  for (const v of csv.versions) {
+    if (ourVersions.has(v.identifier)) versionSlug.set(v.id, v.identifier);
+    const dlc = /-(sword|shield|scarlet|violet)$/.exec(v.identifier);
+    if (dlc && !ourVersions.has(v.identifier)) versionSlug.set(v.id, dlc[1]);
+  }
+
+  const locationNames = namesBy(csv.location_names, 'location_id');
+  const areaProse = namesBy(csv.location_area_prose, 'location_area_id');
+  const areaById = new Map(csv.location_areas.map((a) => [a.id, a]));
+  const areaName = (areaId) => {
+    const area = areaById.get(areaId);
+    const loc = locationNames.get(area?.location_id) ?? {};
+    const en = areaProse.get(areaId)?.en ?? [loc.en, areaSuffix(area?.identifier, 'en')].filter(Boolean).join(' ');
+    let it = loc.it ?? (loc.en ? loc.en.replace(/^Route (\d+)/, 'Percorso $1') : null);
+    if (it && area?.identifier) it = `${it} (${areaSuffix(area.identifier, 'it')})`;
+    return { it: it ?? null, en: en || loc.en || null };
+  };
+
+  const slots = new Map(csv.encounter_slots.map((s) => [s.id, s]));
+  const methodSlug = new Map(csv.encounter_methods.map((m) => [m.id, m.identifier]));
+  const condValues = new Map(csv.encounter_condition_values.map((c) => [c.id, c]));
+  const condByEncounter = groupBy(csv.encounter_condition_value_map, 'encounter_id');
+
+  // incontri[pokemonId][versione] = [{a: zona, m: modo, min, max, rate, c: [condizioni]}]
+  const merged = new Map();
+  const usedAreas = new Set();
+  for (const e of csv.encounters) {
+    const version = versionSlug.get(e.version_id);
+    const pid = Number(e.pokemon_id);
+    if (!version || pid > LAST_SPECIES) continue;
+    const slot = slots.get(e.encounter_slot_id);
+    const method = methodSlug.get(slot?.encounter_method_id) ?? 'other';
+    const conds = (condByEncounter.get(e.id) ?? [])
+      .map((c) => condValues.get(c.encounter_condition_value_id))
+      .filter((c) => c && c.is_default !== '1')
+      .map((c) => c.identifier)
+      .sort();
+    const key = `${pid}|${version}|${e.location_area_id}|${method}|${conds.join(',')}`;
+    const cur = merged.get(key) ?? { pid, version, a: Number(e.location_area_id), m: method, min: 999, max: 0, rate: 0, c: conds };
+    cur.min = Math.min(cur.min, Number(e.min_level));
+    cur.max = Math.max(cur.max, Number(e.max_level));
+    cur.rate += Number(slot?.rarity ?? 0);
+    merged.set(key, cur);
+    usedAreas.add(e.location_area_id);
+  }
+  // Stessa zona, stesso modo e stessi livelli: un'unica riga che elenca le condizioni alternative
+  // (meteo, orario, gioco nello slot GBA…). Se una variante non ha condizioni, vale sempre.
+  const rows = new Map();
+  for (const e of merged.values()) {
+    const key = `${e.pid}|${e.version}|${e.a}|${e.m}|${e.min}|${e.max}`;
+    const cur = rows.get(key);
+    if (!cur) {
+      rows.set(key, { ...e, c: [...e.c], always: e.c.length === 0 });
+      continue;
+    }
+    cur.rate = Math.max(cur.rate, e.rate);
+    if (e.c.length === 0) cur.always = true;
+    for (const c of e.c) if (!cur.c.includes(c)) cur.c.push(c);
+  }
+  const encounters = {};
+  for (const { pid, version, always, ...rest } of rows.values()) {
+    if (always) rest.c = [];
+    rest.rate = Math.min(rest.rate, 100);
+    ((encounters[pid] ??= {})[version] ??= []).push(rest);
+  }
+  for (const byVersion of Object.values(encounters)) {
+    for (const list of Object.values(byVersion)) list.sort((x, y) => y.rate - x.rate || x.min - y.min);
+  }
+  const areas = {};
+  for (const id of usedAreas) areas[id] = areaName(id);
+  const versionsWithData = [...new Set([...merged.values()].map((e) => e.version))];
+
+  // Evoluzioni: da chi si evolve e come, per gruppo di giochi
+  const speciesFrom = new Map(csv.pokemon_species.map((s) => [s.id, s.evolves_from_species_id]));
+  const speciesNames = namesBy(csv.pokemon_species_names, 'pokemon_species_id');
+  const itemNames = namesBy(csv.item_names, 'item_id');
+  const moveNames = namesBy(csv.move_names, 'move_id');
+  const triggers = new Map(csv.evolution_triggers.map((t) => [t.id, t.identifier]));
+  const groupOrder = new Map(csv.version_groups.map((g) => [g.id, Number(g.order)]));
+  const pick = (map, id) => (id ? map.get(id) ?? null : null);
+  const evolutions = {};
+  for (const r of csv.pokemon_evolution) {
+    const sid = Number(r.evolved_species_id);
+    const from = speciesFrom.get(r.evolved_species_id);
+    if (sid > LAST_SPECIES || !from) continue;
+    (evolutions[sid] ??= []).push(compact({
+      from: Number(from),
+      fromName: speciesNames.get(from) ?? {},
+      since: groupOrder.get(r.version_group_id) ?? 0,
+      trigger: triggers.get(r.evolution_trigger_id) ?? 'other',
+      level: num(r.minimum_level),
+      item: pick(itemNames, r.trigger_item_id),
+      held: pick(itemNames, r.held_item_id),
+      move: pick(moveNames, r.known_move_id),
+      moveType: r.known_move_type_id ? typeSlug.get(r.known_move_type_id) ?? null : null,
+      location: r.location_id ? locationNames.get(r.location_id) ?? null : null,
+      happiness: num(r.minimum_happiness),
+      affection: num(r.minimum_affection),
+      beauty: num(r.minimum_beauty),
+      time: r.time_of_day || null,
+      gender: num(r.gender_id),
+      trade: pick(speciesNames, r.trade_species_id),
+      party: pick(speciesNames, r.party_species_id),
+      partyType: r.party_type_id ? typeSlug.get(r.party_type_id) ?? null : null,
+      rain: r.needs_overworld_rain === '1',
+      upsideDown: r.turn_upside_down === '1',
+    }));
+  }
+  // Specie che hanno una pre-evoluzione ma nessuna regola nei dati: almeno il "da chi"
+  for (const [sid, from] of speciesFrom) {
+    if (!from || Number(sid) > LAST_SPECIES || evolutions[sid]) continue;
+    evolutions[sid] = [{ from: Number(from), fromName: speciesNames.get(from) ?? {}, since: 0, trigger: 'other' }];
+  }
+
+  await writeFile(join(OUT, 'encounters.json'), JSON.stringify({ versions: versionsWithData, areas, encounters }));
+  await writeFile(join(OUT, 'evolutions.json'), JSON.stringify(evolutions));
+  console.log(`Incontri: ${merged.size} in ${versionsWithData.length} versioni; evoluzioni: ${Object.keys(evolutions).length}.`);
 }
 
 main().catch((err) => {

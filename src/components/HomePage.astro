@@ -16,7 +16,7 @@ const list = index as IndexEntry[];
 const typeName = (slug: string) => text(TYPE_BY_SLUG.get(slug)?.name, lang);
 ---
 
-<Base title={`PokéKnow — ${ui.siteTagline}`} description={ui.homeDescription} lang={lang} path="">
+<Base title={`PokéKnow — ${ui.siteTagline}`} description={ui.homeDescription} lang={lang} path="" modeToggle>
   <section class="wrap finder" id="cerca">
     <h1 class="finder__title display">{ui.searchTitle}</h1>
     <p class="finder__lead">{ui.searchLead}</p>

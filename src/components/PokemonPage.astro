@@ -4,18 +4,22 @@ import abilitiesJson from '../data/generated/abilities.json';
 import { GAMES, VERSIONS, type Ability, type Lang, type Pokemon, defaultVersion, isPresent, padId, text } from '../lib/data';
 import { localePath, t } from '../lib/i18n';
 import type { Neighbour } from '../lib/paths';
+import type { Build } from '../lib/builds';
+import type { WhereData } from '../lib/where';
 import { renderView, roman } from '../lib/render';
 import { themeFor } from '../lib/themes';
 import { href } from '../lib/url';
 
 interface Props {
   pokemon: Pokemon;
+  builds: Record<string, Build | null>;
+  where: WhereData;
   prev: Neighbour | null;
   next: Neighbour | null;
   lang: Lang;
 }
 
-const { pokemon, prev, next, lang } = Astro.props;
+const { pokemon, builds, where, prev, next, lang } = Astro.props;
 const ui = t(lang);
 const allAbilities = abilitiesJson as Record<string, Ability>;
 
@@ -24,7 +28,7 @@ const abilityIds = new Set(Object.values(pokemon.abilitiesByGen).flat().map((a) 
 const abilities = Object.fromEntries([...abilityIds].map((id) => [id, allAbilities[id]]));
 
 const version = defaultVersion(pokemon, lang);
-const view = renderView(pokemon, abilities, version, lang);
+const view = renderView(pokemon, abilities, version, lang, builds, where);
 const name = text(pokemon.name, lang);
 const genus = text(pokemon.genus, lang);
 const locale = lang === 'it' ? 'it-IT' : 'en-US';
@@ -32,7 +36,7 @@ const path = `pokemon/${pokemon.slug}/`;
 
 const generations = [...new Set(GAMES.map((g) => g.gen))];
 // `<` codificato: il JSON vive dentro un tag <script> e non deve poterlo chiudere.
-const payload = JSON.stringify({ pokemon, abilities, defaultVersion: version }).replaceAll('<', '\\u003c');
+const payload = JSON.stringify({ pokemon, abilities, builds, where, defaultVersion: version }).replaceAll('<', '\\u003c');
 
 // Per lo script nell'<head>: tema di ogni versione in cui il Pokémon è presente.
 const themeByVersion = Object.fromEntries(
@@ -101,6 +105,9 @@ const themeByVersion = Object.fromEntries(
 
     <div class="stage-row">
       <div class="stage">
+        <button class="shiny-toggle" type="button" aria-pressed="false" title={ui.shinyLabel} data-shiny-toggle>
+          <span aria-hidden="true">✦</span> {ui.shiny}
+        </button>
         <img
           class="pixelated"
           data-stage-sprite
@@ -171,6 +178,22 @@ const themeByVersion = Object.fromEntries(
       </section>
     </div>
 
+    <section class="section" aria-labelledby="h-where">
+      <div class="section__head">
+        <h2 class="section__title display" id="h-where">{ui.whereTitle}</h2>
+        <p class="section__aside">{ui.whereAside}</p>
+      </div>
+      <div data-slot="where" set:html={view.slots.where} />
+    </section>
+
+    <section class="section" aria-labelledby="h-build">
+      <div class="section__head">
+        <h2 class="section__title display" id="h-build">{ui.storyBuild}</h2>
+        <p class="section__aside">{ui.buildAside}</p>
+      </div>
+      <div data-slot="build" set:html={view.slots.build} />
+    </section>
+
     <section class="section" aria-labelledby="h-dex">
       <div class="section__head">
         <h2 class="section__title display" id="h-dex">{ui.regionalDex}</h2>
@@ -207,6 +230,8 @@ const themeByVersion = Object.fromEntries(
 
 <script>
   import { VERSION_BY_SLUG, isPresent, text, type Ability, type Pokemon } from '../lib/data';
+  import type { Build } from '../lib/builds';
+  import type { WhereData } from '../lib/where';
   import { GAME_PARAM, isLang, t } from '../lib/i18n';
   import { defaultSpriteUrl, renderView } from '../lib/render';
   import { placeSprite } from '../lib/sprite-anchor';
@@ -217,9 +242,11 @@ const themeByVersion = Object.fromEntries(
   const ui = t(lang);
   const PARAM = GAME_PARAM[lang];
 
-  const { pokemon, abilities, defaultVersion } = JSON.parse(document.getElementById('payload')!.textContent!) as {
+  const { pokemon, abilities, builds, where, defaultVersion } = JSON.parse(document.getElementById('payload')!.textContent!) as {
     pokemon: Pokemon;
     abilities: Record<string, Ability>;
+    builds: Record<string, Build | null>;
+    where: WhereData;
     defaultVersion: string;
   };
 
@@ -306,7 +333,7 @@ const themeByVersion = Object.fromEntries(
   }
 
   function show(slug: string, animate: boolean) {
-    const view = renderView(pokemon, abilities, slug, lang);
+    const view = renderView(pokemon, abilities, slug, lang, builds, where);
     for (const [key, html] of Object.entries(view.slots)) {
       const el = slots.get(key);
       if (el) el.innerHTML = html;
@@ -318,16 +345,44 @@ const themeByVersion = Object.fromEntries(
 
     versionLabel.textContent = ui.dexOf(view.versionName);
     sprite.alt = ui.spriteAlt(name, view.versionName);
-    sprite.onerror = () => {
-      sprite.onerror = null;
-      sprite.src = defaultSpriteUrl(pokemon.id);
-    };
-    if (sprite.src === view.sprite) place(); // stesso sprite, tema diverso: riallinea
-    else sprite.src = view.sprite;
+    current = view;
+    setSprite();
     select.value = slug;
     updateLangLinks(slug);
     if (animate) typeOut(slots.get('flavor')!.querySelector<HTMLElement>('.dialog__text:not(.dialog__text--empty)'));
   }
+
+  // Sprite shiny: un interruttore sul palco, ricordato tra le pagine.
+  const SHINY_KEY = 'pokeknow:shiny';
+  const shinyButton = document.querySelector<HTMLButtonElement>('[data-shiny-toggle]')!;
+  let shiny = false;
+  try {
+    shiny = localStorage.getItem(SHINY_KEY) === '1';
+  } catch {}
+  let current: { sprite: string; spriteShiny: string } = { sprite: sprite.src, spriteShiny: '' };
+
+  function setSprite() {
+    shinyButton.setAttribute('aria-pressed', String(shiny));
+    const wanted = shiny && current.spriteShiny ? current.spriteShiny : current.sprite;
+    sprite.onerror = () => {
+      // se manca lo shiny di quel gioco si torna allo sprite normale, poi a quello standard
+      sprite.onerror = () => {
+        sprite.onerror = null;
+        sprite.src = defaultSpriteUrl(pokemon.id, shiny);
+      };
+      sprite.src = current.sprite;
+    };
+    if (sprite.src === wanted) place(); // stesso sprite, tema diverso: riallinea
+    else sprite.src = wanted;
+  }
+
+  shinyButton.addEventListener('click', () => {
+    shiny = !shiny;
+    try {
+      localStorage.setItem(SHINY_KEY, shiny ? '1' : '0');
+    } catch {}
+    setSprite();
+  });
 
   // Allinea lo sprite alla piattaforma (o al centro) appena l'immagine è pronta.
   let placing = 0;
@@ -360,5 +415,10 @@ const themeByVersion = Object.fromEntries(
   const fromUrl = params.get(PARAM) ?? params.get('gioco') ?? params.get('game');
   const initial = [fromUrl, readStorage()].find(usable);
   if (initial && initial !== defaultVersion) show(initial, false);
-  else if (initial) updateLangLinks(initial);
+  else {
+    if (initial) updateLangLinks(initial);
+    current = renderView(pokemon, abilities, defaultVersion, lang, builds, where);
+    if (shiny) setSprite();
+    else shinyButton.setAttribute('aria-pressed', 'false');
+  }
 </script>
