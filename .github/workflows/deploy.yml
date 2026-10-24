@@ -25,6 +25,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
+          # Astro 7 vuole Node 22.23.4 o successivo: senza questa riga il runner
+          # potrebbe usare una versione 22 più vecchia già installata.
+          check-latest: true
           cache: npm
 
       # Indirizzo e sottocartella del sito (es. /pokeknow/ oppure / con un dominio tuo).
