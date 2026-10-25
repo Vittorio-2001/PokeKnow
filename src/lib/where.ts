@@ -47,6 +47,69 @@ export interface WhereData {
   /** versioni per cui PokéAPI ha i dati degli incontri, per qualunque Pokémon */
   versionsWithData: string[];
   evolutions: Evolution[];
+  /** per ogni versione: true se una pre-evoluzione (anche lontana) si può ottenere lì */
+  chain: Record<string, boolean>;
+}
+
+// Modi in cui il Pokémon non si cattura: lo si riceve.
+const GIFT = new Set(['gift', 'gift-egg']);
+const TRADE = new Set(['npc-trade']);
+
+export interface WhereSummary {
+  /** catturabile: in quanti luoghi, livello minimo e dove */
+  wild?: { places: number; level: number; area: number };
+  gift?: { area: number; level: number; egg: boolean };
+  trade?: { area: number };
+  /** esclusiva di versione rispetto alla gemella */
+  exclusive?: { of: 'this' | 'twin'; twin: string; byEvolution: boolean };
+}
+
+/** Nome del luogo senza la parte tra parentesi: "Old Chateau (2F)" e "Old Chateau (entrance)" sono un luogo solo. */
+export function placeName(name: string): string {
+  return name.replace(/\s*\(.*\)\s*$/, '');
+}
+
+/**
+ * Riepilogo di come si ottiene il Pokémon in una versione, con le esclusive rispetto alle gemelle.
+ * `areaName` serve a contare i luoghi distinti; `twins` sono le altre versioni dello stesso gioco.
+ */
+export function whereSummary(
+  where: WhereData,
+  version: string,
+  twins: string[],
+  areaName: (id: number) => string,
+): WhereSummary {
+  const list = where.encounters[version] ?? [];
+  const summary: WhereSummary = {};
+
+  const wild = list.filter((e) => !GIFT.has(e.m) && !TRADE.has(e.m));
+  if (wild.length) {
+    const lowest = wild.reduce((a, b) => (b.min < a.min ? b : a));
+    summary.wild = {
+      places: new Set(wild.map((e) => placeName(areaName(e.a)))).size,
+      level: lowest.min,
+      area: lowest.a,
+    };
+  }
+  const gift = list.find((e) => GIFT.has(e.m));
+  if (gift) summary.gift = { area: gift.a, level: gift.min, egg: gift.m === 'gift-egg' };
+  const trade = list.find((e) => TRADE.has(e.m));
+  if (trade) summary.trade = { area: trade.a };
+
+  // Esclusive: solo tra versioni gemelle che hanno entrambe i dati degli incontri.
+  const has = (v: string) => (where.encounters[v] ?? []).length > 0;
+  for (const twin of twins) {
+    if (!where.versionsWithData.includes(twin) || !where.versionsWithData.includes(version)) continue;
+    if (has(version) && !has(twin)) {
+      summary.exclusive = { of: 'this', twin, byEvolution: !!where.chain[twin] };
+      break;
+    }
+    if (!has(version) && has(twin)) {
+      summary.exclusive = { of: 'twin', twin, byEvolution: !!where.chain[version] };
+      break;
+    }
+  }
+  return summary;
 }
 
 /** Le regole di evoluzione valide in un gioco: quelle del gruppo più recente non successivo al gioco. */

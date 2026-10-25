@@ -84,6 +84,16 @@ const it = {
   whereNotWild: 'Non si trova allo stato selvatico in questo gioco.',
   whereOtherWays: 'Si ottiene per evoluzione, con uno scambio, da un evento o dalla versione gemella.',
   moreLocations: (n: number) => `Altri ${n} luoghi`,
+  wildSummary: (n: number, level: number, place: string) =>
+    `Selvatico in ${n === 1 ? 'un luogo' : `${n} luoghi`}, dal livello ${level} (${place}).`,
+  giftSummary: (place: string, level: number, egg: boolean) =>
+    egg ? `Si riceve come uovo presso ${place}.` : `Si riceve in regalo presso ${place}, al livello ${level}.`,
+  tradeSummary: (place: string) => `Si ottiene con uno scambio con un personaggio presso ${place}.`,
+  exclusiveTag: 'Esclusiva',
+  exclusiveHere: (here: string, twin: string, byEvolution: boolean) =>
+    `Solo in ${here}: in ${twin} ${byEvolution ? 'si ottiene solo per evoluzione' : 'serve uno scambio'}.`,
+  exclusiveTwin: (twin: string, here: string, byEvolution: boolean) =>
+    `Solo in ${twin}: in ${here} ${byEvolution ? 'si ottiene solo per evoluzione' : 'serve uno scambio'}.`,
   evolvesFrom: (from: string, how: string) => `Si evolve da ${from} ${how}.`,
   methods: {
     'walk': "A piedi, nell’erba o in grotta",
@@ -268,6 +278,15 @@ const en: Dictionary = {
   whereNotWild: 'It can’t be found in the wild in this game.',
   whereOtherWays: 'Get it by evolution, by trading, from an event or from the twin version.',
   moreLocations: (n) => `${n} more locations`,
+  wildSummary: (n, level, place) => `Wild in ${n === 1 ? 'one location' : `${n} locations`}, from level ${level} (${place}).`,
+  giftSummary: (place, level, egg) =>
+    egg ? `Received as an egg at ${place}.` : `Received as a gift at ${place}, at level ${level}.`,
+  tradeSummary: (place) => `Obtained in an in-game trade at ${place}.`,
+  exclusiveTag: 'Exclusive',
+  exclusiveHere: (here, twin, byEvolution) =>
+    `Only in ${here}: in ${twin} ${byEvolution ? 'you can only get it by evolution' : 'you need a trade'}.`,
+  exclusiveTwin: (twin, here, byEvolution) =>
+    `Only in ${twin}: in ${here} ${byEvolution ? 'you can only get it by evolution' : 'you need a trade'}.`,
   evolvesFrom: (from, how) => `Evolves from ${from} ${how}.`,
   methods: {
     'walk': "Walking in grass or caves",

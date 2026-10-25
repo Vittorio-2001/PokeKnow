@@ -19,6 +19,21 @@ const encounterData = encountersJson as unknown as {
 const evolutions = evolutionsJson as unknown as Record<string, Evolution[]>;
 
 /** Dove trovarlo: solo i dati di questo Pokémon, con i nomi delle sole zone che servono. */
+/** Versioni in cui si può ottenere almeno una pre-evoluzione (risalendo tutta la linea evolutiva). */
+function chainAvailability(id: number): Record<string, boolean> {
+  const result: Record<string, boolean> = {};
+  const seen = new Set<number>();
+  let current = evolutions[id]?.[0]?.from;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    for (const [version, list] of Object.entries(encounterData.encounters[current] ?? {})) {
+      if (list.length) result[version] = true;
+    }
+    current = evolutions[current]?.[0]?.from;
+  }
+  return result;
+}
+
 export function whereFor(pokemon: Pokemon): WhereData {
   const encounters = encounterData.encounters[pokemon.id] ?? {};
   const areaIds = new Set(Object.values(encounters).flat().map((e) => String(e.a)));
@@ -27,6 +42,7 @@ export function whereFor(pokemon: Pokemon): WhereData {
     areas: Object.fromEntries([...areaIds].map((id) => [id, encounterData.areas[id]])),
     versionsWithData: encounterData.versions,
     evolutions: evolutions[pokemon.id] ?? [],
+    chain: chainAvailability(pokemon.id),
   };
 }
 

@@ -13,7 +13,7 @@ import {
 import { t } from './i18n';
 import { defensiveProfile, offensiveProfile } from './typechart';
 import { type Theme, themeFor } from './themes';
-import { type WhereData, evolutionsFor, howItEvolves } from './where';
+import { type WhereData, evolutionsFor, howItEvolves, placeName, whereSummary } from './where';
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
 
@@ -122,7 +122,9 @@ export function renderView(
         ? `<p class="muted">${esc(ui.noAbilitiesInGame(versionName))}</p>`
         : renderAbilities(pokemon.abilitiesByGen[gen] ?? [], abilities, lang),
       dex: renderDex(pokemon, game.group, versionName, name, lang),
-      where: where ? renderWhere(where, versionSlug, game.order, versionName, lang) : '',
+      where: where
+        ? renderWhere(where, versionSlug, game.order, versionName, lang, game.versions.map((v) => v.slug).filter((v) => v !== versionSlug))
+        : '',
     },
   };
 }
@@ -318,8 +320,35 @@ export function conditionText(conds: string[], lang: Lang): string {
   return parts.join(or);
 }
 
-function renderWhere(where: WhereData, versionSlug: string, order: number, versionName: string, lang: Lang): string {
+function renderSummary(where: WhereData, versionSlug: string, versionName: string, twins: string[], lang: Lang): string {
   const ui = t(lang);
+  const area = (id: number) => text(where.areas[id], lang);
+  const s = whereSummary(where, versionSlug, twins, area);
+  const lines: string[] = [];
+  if (s.exclusive) {
+    const twinName = text(VERSION_BY_SLUG.get(s.exclusive.twin)?.name, lang);
+    const text_ =
+      s.exclusive.of === 'this'
+        ? ui.exclusiveHere(versionName, twinName, s.exclusive.byEvolution)
+        : ui.exclusiveTwin(twinName, versionName, s.exclusive.byEvolution);
+    lines.push(`<p class="where__exclusive"><span class="tag">${esc(ui.exclusiveTag)}</span> ${esc(text_)}</p>`);
+  }
+  if (s.wild) lines.push(`<p>${esc(ui.wildSummary(s.wild.places, s.wild.level, placeName(area(s.wild.area))))}</p>`);
+  if (s.gift) lines.push(`<p>${esc(ui.giftSummary(area(s.gift.area), s.gift.level, s.gift.egg))}</p>`);
+  if (s.trade) lines.push(`<p>${esc(ui.tradeSummary(area(s.trade.area)))}</p>`);
+  return lines.length ? `<div class="where__summary">${lines.join('')}</div>` : '';
+}
+
+function renderWhere(
+  where: WhereData,
+  versionSlug: string,
+  order: number,
+  versionName: string,
+  lang: Lang,
+  twins: string[] = [],
+): string {
+  const ui = t(lang);
+  const summary = renderSummary(where, versionSlug, versionName, twins, lang);
   const typeName = (slug: string) => text(TYPE_BY_SLUG.get(slug)?.name, lang);
   const evolutions = evolutionsFor(where.evolutions, order);
   const evoLines = [
@@ -332,7 +361,8 @@ function renderWhere(where: WhereData, versionSlug: string, order: number, versi
   }
   const list = where.encounters[versionSlug] ?? [];
   if (!list.length) {
-    return `${evoHtml}<p class="muted">${esc(ui.whereNotWild)} ${evoLines.length ? '' : esc(ui.whereOtherWays)}</p>`;
+    const other = evoLines.length || summary ? '' : ` ${esc(ui.whereOtherWays)}`;
+    return `${summary}${evoHtml}<p class="muted">${esc(ui.whereNotWild)}${other}</p>`;
   }
 
   const row = (e: (typeof list)[number]) => {
@@ -355,5 +385,5 @@ function renderWhere(where: WhereData, versionSlug: string, order: number, versi
   const more = rest.length
     ? `<details class="where__more"><summary>${esc(ui.moreLocations(rest.length))}</summary><ul class="where__list">${rest.map(row).join('')}</ul></details>`
     : '';
-  return `${evoHtml}<ul class="where__list">${first}</ul>${more}`;
+  return `${summary}${evoHtml}<ul class="where__list">${first}</ul>${more}`;
 }

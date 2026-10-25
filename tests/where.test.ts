@@ -38,3 +38,45 @@ describe('sprite shiny', () => {
     expect(spriteUrl(94, 'emerald')).not.toContain('shiny');
   });
 });
+
+describe('riepilogo ed esclusive', async () => {
+  const { whereSummary } = await import('../src/lib/where');
+  const base = (encounters: Record<string, { a: number; m: string; min: number }[]>, chain: Record<string, boolean> = {}) => ({
+    encounters: Object.fromEntries(
+      Object.entries(encounters).map(([v, list]) => [v, list.map((e) => ({ ...e, max: e.min, rate: 10, c: [] }))]),
+    ),
+    areas: {},
+    versionsWithData: ['firered', 'leafgreen', 'emerald'],
+    evolutions: [],
+    chain,
+  });
+  const names: Record<number, string> = { 1: 'Percorso 4', 2: 'Percorso 11', 3: 'Old Chateau (2F)', 4: 'Old Chateau (entrance)', 5: 'Zafferanopoli' };
+  const area = (id: number) => names[id];
+
+  it('conta i luoghi distinti e trova il livello più basso', () => {
+    const s = whereSummary(base({ firered: [{ a: 2, m: 'walk', min: 12 }, { a: 1, m: 'walk', min: 6 }, { a: 3, m: 'walk', min: 9 }, { a: 4, m: 'walk', min: 9 }] }), 'firered', ['leafgreen'], area);
+    expect(s.wild).toEqual({ places: 3, level: 6, area: 1 });
+  });
+
+  it('distingue i regali dagli incontri selvatici', () => {
+    const s = whereSummary(base({ firered: [{ a: 5, m: 'gift', min: 25 }] }), 'firered', ['leafgreen'], area);
+    expect(s.wild).toBeUndefined();
+    expect(s.gift).toEqual({ area: 5, level: 25, egg: false });
+  });
+
+  it('riconosce le esclusive di versione, in tutte e due le direzioni', () => {
+    const data = base({ firered: [{ a: 1, m: 'walk', min: 6 }] });
+    expect(whereSummary(data, 'firered', ['leafgreen'], area).exclusive).toEqual({ of: 'this', twin: 'leafgreen', byEvolution: false });
+    expect(whereSummary(data, 'leafgreen', ['firered'], area).exclusive).toEqual({ of: 'twin', twin: 'firered', byEvolution: false });
+  });
+
+  it('se la pre-evoluzione c’è nella gemella, si ottiene per evoluzione invece che con uno scambio', () => {
+    const data = base({ firered: [{ a: 1, m: 'walk', min: 6 }] }, { leafgreen: true });
+    expect(whereSummary(data, 'firered', ['leafgreen'], area).exclusive?.byEvolution).toBe(true);
+  });
+
+  it('senza i dati della gemella non dichiara esclusive', () => {
+    const data = base({ emerald: [{ a: 1, m: 'walk', min: 6 }] });
+    expect(whereSummary(data, 'emerald', ['sapphire'], area).exclusive).toBeUndefined();
+  });
+});
