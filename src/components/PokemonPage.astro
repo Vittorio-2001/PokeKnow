@@ -64,6 +64,7 @@ const themeByVersion = Object.fromEntries(
   theme={view.theme.key}
   version={version}
   pixel={view.theme.pixel}
+  image={`og/${lang}/${pokemon.slug}.jpg`}
 >
   <!-- Applica il tema del gioco scelto prima del primo disegno: niente lampo del tema sbagliato. -->
   <script is:inline slot="head" define:vars={{ themeByVersion }}>

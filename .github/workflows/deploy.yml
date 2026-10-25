@@ -51,6 +51,17 @@ jobs:
           SITE_URL: ${{ steps.pages.outputs.origin }}
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
 
+      # Anteprime dei link: una card per Pokémon e lingua, fotografata con il Chrome già presente sul runner.
+      # Le card già fatte restano in cache: si rifanno solo quelle cambiate (la prima volta servono alcuni minuti).
+      - uses: actions/cache@v6
+        with:
+          path: .cache/og
+          key: og-cards-${{ github.run_id }}
+          restore-keys: og-cards-
+      - run: npm run og
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

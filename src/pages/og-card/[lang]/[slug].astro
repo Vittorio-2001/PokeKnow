@@ -1,0 +1,131 @@
+---
+// Card 1200×630 per l'anteprima dei link (WhatsApp, Discord, Reddit…).
+// Non viene pubblicata: scripts/og-cards.mjs la fotografa dopo la build e poi la cancella.
+// Usa lo stesso CSS del sito, così ogni card ha lo stile del gioco predefinito del Pokémon.
+import '../../../styles/fonts.css';
+import '../../../styles/global.css';
+import '../../../styles/themes.css';
+import pokemonJson from '../../../data/generated/pokemon.json';
+import { type Lang, type Pokemon, VERSION_BY_SLUG, defaultVersion, padId, text } from '../../../lib/data';
+import { LANGS, t } from '../../../lib/i18n';
+import { spriteUrl, typeChip } from '../../../lib/render';
+import { themeFor } from '../../../lib/themes';
+
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) => (pokemonJson as Pokemon[]).map((pokemon) => ({ params: { lang, slug: pokemon.slug }, props: { pokemon } })));
+}
+
+const { pokemon } = Astro.props as { pokemon: Pokemon };
+const lang = Astro.params.lang as Lang;
+const ui = t(lang);
+const slug = defaultVersion(pokemon, lang);
+const { game, name: versionName } = VERSION_BY_SLUG.get(slug)!;
+const theme = themeFor(game.group);
+// tipi della generazione del gioco (i dati partono dalla Gen III)
+const gens = Object.keys(pokemon.typesByGen).map(Number).filter((g) => g <= game.gen);
+const types = pokemon.typesByGen[String(Math.max(...gens))] ?? [];
+---
+
+<!doctype html>
+<html lang={lang} data-theme={theme.key} data-version={slug} data-sprite={theme.pixel ? 'pixel' : 'smooth'} class="js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>{text(pokemon.name, lang)}</title>
+    <style>
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        margin: 0;
+        overflow: hidden;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .card {
+        box-sizing: border-box;
+        width: 1200px;
+        height: 630px;
+        padding: 40px;
+        display: grid;
+        grid-template-columns: 1fr 550px;
+        gap: 44px;
+      }
+      .card__text {
+        display: flex;
+        flex-direction: column;
+        padding-top: 18px;
+        min-width: 0;
+      }
+      .card__logo {
+        font-size: 30px;
+      }
+      .card__n {
+        margin-top: auto;
+        font-family: var(--font-display);
+        font-size: 30px;
+        color: var(--mute);
+      }
+      .card__name {
+        font-size: 92px;
+        line-height: 1;
+        margin-top: 6px;
+        overflow-wrap: anywhere;
+      }
+      .card__name--long {
+        font-size: 68px;
+      }
+      .card__genus {
+        font-size: 32px;
+        margin-top: 14px;
+      }
+      .card__types {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        zoom: 1.6;
+      }
+      .card__game {
+        margin-top: auto;
+        font-size: 24px;
+        color: var(--mute);
+      }
+      .card .stage {
+        width: 550px;
+        height: 550px;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="card__text">
+        <p class="card__logo logo display">PokéKnow</p>
+        <p class="card__n">#{padId(pokemon.id)}</p>
+        <h1 class={`card__name display${text(pokemon.name, lang).length > 10 ? ' card__name--long' : ''}`}>{text(pokemon.name, lang)}</h1>
+        <p class="card__genus">{text(pokemon.genus, lang)}</p>
+        <div class="card__types" set:html={types.map((type) => typeChip(type, lang)).join('')} />
+        <p class="card__game">{ui.dexOf(text(versionName, lang))}</p>
+      </div>
+      <div class="stage">
+        <img class="pixelated" crossorigin="anonymous" src={spriteUrl(pokemon.id, game.group)} alt="" width="96" height="96" />
+      </div>
+    </div>
+    <script>
+      import { placeSprite } from '../../../lib/sprite-anchor';
+      const img = document.querySelector<HTMLImageElement>('.stage img')!;
+      const stage = document.querySelector<HTMLElement>('.stage')!;
+      const done = () => placeSprite(img, stage).finally(() => {
+        img.classList.add('is-placed');
+        document.body.dataset.ready = '1';
+      });
+      if (img.complete && img.naturalWidth) done();
+      else {
+        img.addEventListener('load', done, { once: true });
+        img.addEventListener('error', () => (document.body.dataset.ready = 'error'), { once: true });
+      }
+    </script>
+  </body>
+</html>

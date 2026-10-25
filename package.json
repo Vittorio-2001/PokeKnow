@@ -8,6 +8,7 @@
     "data": "node scripts/fetch-data.mjs",
     "dev": "node scripts/fetch-data.mjs && astro dev",
     "build": "node scripts/fetch-data.mjs && astro build",
+    "og": "node scripts/og-cards.mjs",
     "preview": "astro preview",
     "test": "node scripts/fetch-data.mjs && vitest run"
   },
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "csv-parse": "^7.0.3",
+    "playwright-core": "^1.63.0",
     "vitest": "^5.0.5"
   }
 }

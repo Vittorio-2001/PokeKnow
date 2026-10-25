@@ -19,9 +19,11 @@ interface Props {
   pixel?: boolean;
   /** Solo in home: interruttore tema chiaro/scuro con Solrock e Lunatone. */
   modeToggle?: boolean;
+  /** Immagine di anteprima dei link, relativa alla base (per esempio 'og/it/gengar.jpg'); senza, quella generale. */
+  image?: string;
 }
 
-const { title, description, lang, path, theme, version, pixel = true, modeToggle = false } = Astro.props;
+const { title, description, lang, path, theme, version, pixel = true, modeToggle = false, image } = Astro.props;
 const ui = t(lang);
 
 // Tema chiaro/scuro della home: applicato prima del primo disegno, poi l'interruttore.
@@ -41,6 +43,7 @@ const MODE_TOGGLE = `(() => {
   sync();
 })();`;
 const absolute = (l: Lang) => new URL(href(localePath(l, path)), Astro.site).href;
+const imageUrl = new URL(href(image ?? `og/home-${lang}.jpg`), Astro.site).href;
 ---
 
 <!doctype html>
@@ -70,6 +73,14 @@ const absolute = (l: Lang) => new URL(href(localePath(l, path)), Astro.site).hre
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:locale" content={lang === 'it' ? 'it_IT' : 'en_US'} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PokéKnow" />
+    <meta property="og:url" content={absolute(lang)} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://raw.githubusercontent.com" />
     <slot name="head" />
   </head>

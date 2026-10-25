@@ -21,6 +21,7 @@
 - **Catching and breeding**: catch rate with the chance of a Poké Ball at full HP, base friendship and experience, growth rate, gender ratio, egg groups and egg cycles.
 - **Where to find it**: for every game, a one-line summary (how many wild locations and from which level, gifts and in-game trades), **version exclusives** compared with the twin version (and whether the other version can get it by evolution or needs a trade), then the locations where the Pokémon appears with the method (grass, surfing, fishing, gifts, Wanderers…), levels, encounter rate and conditions such as time of day, weather, swarms or the GBA slot, plus how it evolves in that game.
 - **Learnable moves**: for every game, the moves learned by level up, TM and HM (TR in Sword and Shield), egg and tutor, each with the type, category, power, accuracy and PP it had in that game, a search box that filters every tab as you type, and a note when a TM, egg or tutor move is also learned by level up: Charm is Normal before X and Y, and in Gen III Shadow Ball is physical because the category still depended on the type. The default game is in the page; the others are loaded only when you switch game.
+- **Link previews**: sharing a Pokémon page on WhatsApp, Discord, Reddit or Telegram shows a card with that Pokémon in the style of its default game, rendered from the site's own CSS.
 - **Shiny sprites**: a toggle on the sprite stage shows the shiny version from the same era's sprite set, and the choice is remembered.
 - **Nine era themes**: each generation has its own colors, typefaces, shapes, text box and sprite stage, inspired by the interfaces of its games.
 - **Version palettes**: every game pairs the colors of its two versions. Choose Sun and the sky fades from sun-orange into moon-violet; choose Moon and it flips. White and White 2 get a light take on the Unova theme.
@@ -45,6 +46,8 @@
 
 **Internationalization without a framework.** Every interface string lives in one typed dictionary per language (`src/lib/i18n.ts`); a test fails if a language is missing a key. Italian is served at the root and English under `/en/`, with `hreflang` alternates for search engines. Pages are thin wrappers around shared components, so adding a language means adding a dictionary and two route files.
 
+**Link preview cards.** Each Pokémon has a hidden 1200×630 page that reuses the era theme, the type chips and the sprite stage. After the build, `scripts/og-cards.mjs` serves `dist/`, photographs those pages with headless Chrome through `playwright-core`, writes `og/<lang>/<slug>.jpg` and deletes the hidden pages. Cards are cached by a hash of their HTML, so a deploy only re-renders the cards whose content or style changed.
+
 **Continuous deployment.** A GitHub Actions workflow runs the tests, builds the site and publishes it to GitHub Pages on every push to `main`. The base path is detected automatically, so the same code works under `/PokeKnow/` or on a custom domain.
 
 ## Tech stack
@@ -65,6 +68,7 @@ npm install
 npm run dev      # downloads the data on first run, then starts the dev server
 npm run build    # generates the static site in dist/
 npm test         # unit tests
+npm run og       # after a build: link preview cards (a few minutes the first time)
 ```
 
 To refresh the PokéAPI data: `npm run data -- --refresh`.
@@ -90,6 +94,8 @@ src/components/                  home and Pokémon page, shared by all languages
 src/pages/                       Italian routes (index, pokemon/[slug])
 src/pages/en/                    English routes
 src/pages/data/moves/[id].json.ts  per-Pokémon move files, loaded on demand
+src/pages/og-card/               link preview cards, photographed after the build
+scripts/og-cards.mjs             renders the link preview cards
 src/styles/global.css            shared layout and the black-and-white base theme
 src/styles/themes.css            era themes and version palettes
 src/styles/fonts.css             self-hosted fonts
