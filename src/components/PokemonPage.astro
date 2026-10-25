@@ -1,9 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
 import abilitiesJson from '../data/generated/abilities.json';
-import { GAMES, VERSIONS, type Ability, type Lang, type Pokemon, defaultVersion, isPresent, padId, text } from '../lib/data';
+import { GAMES, VERSIONS, VERSION_BY_SLUG, type Ability, type Lang, type Pokemon, defaultVersion, isPresent, padId, text } from '../lib/data';
 import { localePath, t } from '../lib/i18n';
-import type { Neighbour } from '../lib/paths';
+import { type Neighbour, movesFor } from '../lib/paths';
+import { renderMoves } from '../lib/moves';
 import type { WhereData } from '../lib/where';
 import type { ChainMember } from '../lib/chain';
 import { catchChance } from '../lib/stats';
@@ -34,6 +35,9 @@ const version = defaultVersion(pokemon, lang);
 const view = renderView(pokemon, abilities, version, lang, where, chain);
 const name = text(pokemon.name, lang);
 const genus = text(pokemon.genus, lang);
+// Mosse: nell'HTML solo quelle del gioco predefinito; per gli altri giochi il browser scarica /data/moves/<id>.json.
+const game = VERSION_BY_SLUG.get(version)!.game;
+const movesHtml = renderMoves(movesFor(pokemon.id), game.group, game.gen, game.order, view.versionName, lang);
 const locale = lang === 'it' ? 'it-IT' : 'en-US';
 // Impronte dalla raccolta di veekun: esistono nei giochi fino alla Gen V, e non per tutti (chi non ha piedi non lascia impronte).
 const footprint = (footprintsJson as Record<string, string>)[pokemon.id] ?? null;
@@ -294,6 +298,14 @@ const themeByVersion = Object.fromEntries(
       <div data-slot="dex" set:html={view.slots.dex} />
     </section>
 
+    <section class="section" aria-labelledby="h-moves">
+      <div class="section__head">
+        <h2 class="section__title display" id="h-moves">{ui.movesTitle}</h2>
+        <p class="section__aside">{ui.movesAside}</p>
+      </div>
+      <div data-moves set:html={movesHtml} />
+    </section>
+
     <nav class="pager" aria-label={ui.nearby}>
       {
         prev && (
@@ -328,6 +340,8 @@ const themeByVersion = Object.fromEntries(
   import { GAME_PARAM, isLang, t } from '../lib/i18n';
   import { cryUrl, defaultSpriteUrl, renderView } from '../lib/render';
   import { placeSprite } from '../lib/sprite-anchor';
+  import { type MovesData, filterMoves, renderMoves } from '../lib/moves';
+  import { href } from '../lib/url';
 
   // Il gioco scelto si ricorda tra le lingue: stessa chiave, parametro dell'URL tradotto.
   const STORAGE_KEY = 'pokeknow:gioco';
@@ -443,8 +457,69 @@ const themeByVersion = Object.fromEntries(
     setSprite();
     select.value = slug;
     updateLangLinks(slug);
+    showMoves(slug, view.versionName);
     if (animate) typeOut(slots.get('flavor')!.querySelector<HTMLElement>('.dialog__text:not(.dialog__text--empty)'));
   }
+
+  // Mosse: il file con tutti i giochi si scarica una volta sola, al primo cambio di gioco.
+  const movesBox = document.querySelector<HTMLElement>('[data-moves]')!;
+  let movesData: Promise<MovesData> | null = null;
+  let movesTicket = 0;
+  let openTab = 'L';
+  let movesQuery = '';
+
+  movesBox.addEventListener('input', (event) => {
+    const input = event.target as HTMLInputElement;
+    if (!input.matches('[data-moves-search]')) return;
+    movesQuery = input.value;
+    filterMoves(movesBox, movesQuery);
+  });
+
+  function showMoves(slug: string, versionName: string) {
+    const { game } = VERSION_BY_SLUG.get(slug)!;
+    const ticket = ++movesTicket;
+    const draw = (data: MovesData) => {
+      if (ticket !== movesTicket) return;
+      const focused = document.activeElement?.matches('[data-moves-search]');
+      movesBox.innerHTML = renderMoves(data, game.group, game.gen, game.order, versionName, lang, openTab);
+      // la ricerca resta cambiando gioco
+      const input = movesBox.querySelector<HTMLInputElement>('[data-moves-search]');
+      if (input) {
+        input.value = movesQuery;
+        filterMoves(movesBox, movesQuery);
+        if (focused) input.focus();
+      }
+    };
+    if (!movesData) {
+      movesBox.innerHTML = `<p class="muted">${ui.movesLoading}</p>`;
+      movesData = fetch(href(`data/moves/${pokemon.id}.json`)).then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      });
+      movesData.catch(() => (movesData = null)); // al prossimo cambio di gioco ci riprova
+    }
+    movesData.then(draw, () => {
+      if (ticket === movesTicket) movesBox.innerHTML = `<p class="muted">${ui.movesError}</p>`;
+    });
+  }
+
+  // Schede Livello / MT / Uova / Insegnamosse; la scheda aperta resta tale cambiando gioco.
+  movesBox.addEventListener('click', (event) => {
+    const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-method]');
+    if (!tab) return;
+    openTab = tab.dataset.method!;
+    for (const b of movesBox.querySelectorAll<HTMLButtonElement>('[data-method]')) b.setAttribute('aria-selected', String(b === tab));
+    for (const panel of movesBox.querySelectorAll<HTMLElement>('[data-panel]')) panel.hidden = panel.dataset.panel !== openTab;
+  });
+  movesBox.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    const tabs = [...movesBox.querySelectorAll<HTMLButtonElement>('[data-method]')];
+    const i = tabs.indexOf(event.target as HTMLButtonElement);
+    if (i < 0) return;
+    const next = tabs[(i + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    next.focus();
+    next.click();
+  });
 
   // Verso: il pulsante sul palco (o un clic sullo sprite) lo riproduce e fa "saltare" il Pokémon.
   const cryButton = document.querySelector<HTMLButtonElement>('[data-cry]')!;

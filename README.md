@@ -20,6 +20,7 @@
 - **Search by shape**: like the in-game Pokédex, the home page filters by the 14 body shapes, with pixel pictograms drawn for PokéKnow.
 - **Catching and breeding**: catch rate with the chance of a Poké Ball at full HP, base friendship and experience, growth rate, gender ratio, egg groups and egg cycles.
 - **Where to find it**: for every game, a one-line summary (how many wild locations and from which level, gifts and in-game trades), **version exclusives** compared with the twin version (and whether the other version can get it by evolution or needs a trade), then the locations where the Pokémon appears with the method (grass, surfing, fishing, gifts, Wanderers…), levels, encounter rate and conditions such as time of day, weather, swarms or the GBA slot, plus how it evolves in that game.
+- **Learnable moves**: for every game, the moves learned by level up, TM and HM (TR in Sword and Shield), egg and tutor, each with the type, category, power, accuracy and PP it had in that game, a search box that filters every tab as you type, and a note when a TM, egg or tutor move is also learned by level up: Charm is Normal before X and Y, and in Gen III Shadow Ball is physical because the category still depended on the type. The default game is in the page; the others are loaded only when you switch game.
 - **Shiny sprites**: a toggle on the sprite stage shows the shiny version from the same era's sprite set, and the choice is remembered.
 - **Nine era themes**: each generation has its own colors, typefaces, shapes, text box and sprite stage, inspired by the interfaces of its games.
 - **Version palettes**: every game pairs the colors of its two versions. Choose Sun and the sky fades from sun-orange into moon-violet; choose Moon and it flips. White and White 2 get a light take on the Unova theme.
@@ -52,7 +53,7 @@
 - Vanilla JavaScript on the client: no framework, a single small script per page
 - [PokéAPI](https://pokeapi.co) data (CSV dumps) and sprites
 - Self-hosted fonts through [Fontsource](https://fontsource.org): no requests to Google Fonts
-- [Vitest](https://vitest.dev) for the type chart, the translations, the Pokédex entry fallback, evolutions, encounters, evolution chains and stat formulas
+- [Vitest](https://vitest.dev) for the type chart, the translations, the Pokédex entry fallback, evolutions, encounters, evolution chains, stat formulas and move data
 - GitHub Actions and GitHub Pages
 
 ## Getting started
@@ -77,6 +78,7 @@ src/lib/typechart.ts             weaknesses, resistances and coverage per genera
 src/lib/where.ts                 encounters and how each Pokémon evolves
 src/lib/chain.ts                 evolution family as a tree, per game
 src/lib/stats.ts                 stat ranges and catch chance
+src/lib/moves.ts                 learnable moves and their values in each game
 src/lib/shapes.ts                body shapes and their pixel pictograms
 src/lib/render.ts                section HTML, shared by the build and the browser
 src/lib/themes.ts                which theme and which sprites for each game
@@ -87,6 +89,7 @@ src/lib/paths.ts                 static routes shared by all languages
 src/components/                  home and Pokémon page, shared by all languages
 src/pages/                       Italian routes (index, pokemon/[slug])
 src/pages/en/                    English routes
+src/pages/data/moves/[id].json.ts  per-Pokémon move files, loaded on demand
 src/styles/global.css            shared layout and the black-and-white base theme
 src/styles/themes.css            era themes and version palettes
 src/styles/fonts.css             self-hosted fonts
@@ -99,7 +102,8 @@ tests/                           Vitest tests
 - **Italian Pokédex entries**: PokéAPI only has them from X and Y up to Sword and Shield. When a game has no entry in the page language, the site shows the entry from the nearest game in that language, says which game it comes from, and keeps the game's original text one click away.
 - **Scarlet and Violet** have few entries in PokéAPI, and **Legends: Z-A** none yet. These games show the nearest available entry, clearly labeled with its source game.
 - Alternate forms (regional variants, Mega Evolutions, Gigantamax) are not included yet: only the default form.
-- **Encounter locations** are missing for Brilliant Diamond and Shining Pearl, Legends: Arceus, Scarlet and Violet, and Legends: Z-A, and partial for Omega Ruby and Alpha Sapphire. Many location names have no Italian translation in PokéAPI: the site uses the English name, turning "Route 12" into "Percorso 12".
+- **Encounter locations** are missing for Brilliant Diamond and Shining Pearl, Legends: Arceus, Scarlet and Violet, and Legends: Z-A, and partial for Omega Ruby and Alpha Sapphire.
+- **Moves for Legends: Z-A** are not in PokéAPI yet: the page says so. Many location names have no Italian translation in PokéAPI: the site uses the English name, turning "Route 12" into "Percorso 12".
 
 ## Roadmap
 

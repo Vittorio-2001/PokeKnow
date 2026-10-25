@@ -410,6 +410,178 @@ h3 {
   opacity: 0.85;
 }
 
+/* ---------- Mosse ---------- */
+
+.moves__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.moves__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.moves__tab.is-empty {
+  opacity: 0.45;
+}
+
+/* ricerca della mossa: a destra delle schede, a tutta larghezza sul telefono */
+.moves__search {
+  margin-left: auto;
+  flex: 0 1 15rem;
+}
+
+.moves__search input {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.75rem;
+}
+
+.moves__search input::placeholder {
+  color: var(--mute);
+}
+
+.moves__search input:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.moves__also {
+  display: block;
+  font-weight: 400;
+  font-size: var(--step--1);
+  color: var(--mute);
+}
+
+.moves__empty {
+  margin: 0.5rem 0;
+}
+
+.moves__tab {
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  text-transform: var(--display-case);
+  letter-spacing: var(--display-tracking);
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--line-w) solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.moves__tab[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.moves__count {
+  opacity: 0.7;
+  font-size: var(--step--1);
+}
+
+.moves__panel {
+  overflow-x: auto;
+}
+
+.moves__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.moves__table th,
+.moves__table td {
+  text-align: left;
+  padding: 0.45rem 0.75rem 0.45rem 0;
+  border-bottom: var(--rule);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.moves__table thead th {
+  font-size: var(--step--1);
+  color: var(--mute);
+  font-weight: 400;
+}
+
+.moves__table .moves__name {
+  font-weight: 700;
+  white-space: normal;
+  min-width: 8rem;
+}
+
+.moves__how,
+.moves__table .moves__num {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+}
+
+.moves__table .moves__num {
+  text-align: right;
+}
+
+.moves__table th:last-child,
+.moves__table td:last-child {
+  padding-right: 0.25rem;
+}
+
+.moves__cls {
+  font-size: var(--step--1);
+}
+
+.moves__cls--physical::before,
+.moves__cls--special::before,
+.moves__cls--status::before {
+  content: '';
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.35em;
+  vertical-align: 0.05em;
+}
+
+.moves__cls--physical::before { background: #c92112; }
+.moves__cls--special::before { background: #4f5870; border-radius: 50%; }
+.moves__cls--status::before { background: #8c888c; transform: rotate(45deg) scale(0.85); }
+
+@media (max-width: 40rem) {
+  .moves__search {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  .moves__table th,
+  .moves__table td {
+    padding-right: 0.5rem;
+  }
+
+  .moves__table .moves__name {
+    min-width: 7rem;
+  }
+
+  /* su telefono la categoria resta solo come simbolo (il nome è nel tooltip e per i lettori di schermo) */
+  .moves__cls-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* ---------- Dove trovarlo ---------- */
 
 .where__summary {

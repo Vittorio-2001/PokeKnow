@@ -4,6 +4,9 @@ import encountersJson from '../data/generated/encounters.json';
 import evolutionsJson from '../data/generated/evolutions.json';
 import type { Encounter, Evolution, WhereData } from './where';
 import type { ChainMember } from './chain';
+import learnsetsJson from '../data/generated/learnsets.json';
+import movesJson from '../data/generated/moves.json';
+import type { LearnEntry, MoveInfo, MovesData } from './moves';
 import type { Localized, Pokemon } from './data';
 
 export interface Neighbour {
@@ -63,6 +66,16 @@ export function chainFor(pokemon: Pokemon): ChainMember[] {
     from: evolutions[p.id]?.[0]?.from ?? null,
     rules: evolutions[p.id] ?? [],
   }));
+}
+
+const learnsets = learnsetsJson as unknown as Record<string, Record<string, LearnEntry[]>>;
+const allMoves = movesJson as unknown as Record<string, MoveInfo>;
+
+/** Le mosse di un Pokémon in tutti i giochi, con i dati delle sole mosse che usa. */
+export function movesFor(id: number): MovesData {
+  const own = learnsets[id] ?? {};
+  const ids = new Set(Object.values(own).flat().map((e) => String(e[0])));
+  return { learnsets: own, moves: Object.fromEntries([...ids].map((m) => [m, allMoves[m]])) };
 }
 
 export function pokemonPaths() {
