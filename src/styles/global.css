@@ -538,6 +538,12 @@ h3 {
   margin: 0 0 0.5rem;
 }
 
+.footer__author {
+  color: var(--ink);
+  font-size: var(--step-0);
+  margin-bottom: 1rem;
+}
+
 /* ---------- Tipi ---------- */
 
 .chips {

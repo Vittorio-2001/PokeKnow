@@ -119,6 +119,10 @@ const absolute = (l: Lang) => new URL(href(localePath(l, path)), Astro.site).hre
 
     <footer class="footer">
       <div class="wrap">
+        <p class="footer__author">
+          {ui.madeBy} <a href="https://github.com/Vittorio-2001">Vittorio Monfrecola</a>.{' '}
+          <a href="https://github.com/Vittorio-2001/PokeKnow">{ui.sourceCode}</a>
+        </p>
         <p>{ui.footerDisclaimer}</p>
         <p>{ui.footerData}: <a href="https://pokeapi.co">PokéAPI</a>. {ui.footerFootprints}: <a href="https://veekun.com/dex/downloads">veekun</a>, {ui.footerCollectedBy} eevee/lexy munroe.</p>
         <p>
