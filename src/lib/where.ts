@@ -24,6 +24,10 @@ export interface Evolution {
   level?: number;
   item?: Localized;
   held?: Localized;
+  /** identificatore PokéAPI dell'oggetto da usare (per lo sprite) */
+  itemSlug?: string;
+  /** identificatore PokéAPI dell'oggetto da tenere (per lo sprite) */
+  heldSlug?: string;
   move?: Localized;
   moveType?: string;
   location?: Localized;
@@ -172,7 +176,7 @@ const WORDS: Record<Lang, Words> = {
     trade: 'when traded',
     tradeHolding: (item) => `when traded holding ${item}`,
     tradeFor: (species) => `when traded for ${species}`,
-    useItem: (item) => `with a ${item}`,
+    useItem: (item) => `with ${/^[aeiou]/i.test(item) ? 'an' : 'a'} ${item}`,
     levelUp: 'by leveling up',
     atLevel: (n) => `at level ${n}`,
     happiness: 'with high friendship',

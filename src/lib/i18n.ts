@@ -114,6 +114,8 @@ const it = {
   chainAside: 'Come si evolve in questo gioco',
   noEvolution: 'Non si evolve e non ha pre-evoluzioni.',
   evolvesSomehow: 'evoluzione',
+  levelUp: 'Salire di livello',
+  friendship: 'Amicizia',
 
   // cattura e allevamento
   trainingTitle: 'Cattura e allevamento',
@@ -363,6 +365,8 @@ const en: Dictionary = {
   chainAside: 'How it evolves in this game',
   noEvolution: 'It doesn’t evolve and has no pre-evolutions.',
   evolvesSomehow: 'evolves',
+  levelUp: 'Level up',
+  friendship: 'Friendship',
 
   trainingTitle: 'Catching and breeding',
   catchRate: 'Catch rate',

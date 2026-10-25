@@ -80,3 +80,16 @@ describe('riepilogo ed esclusive', async () => {
     expect(whereSummary(data, 'emerald', ['sapphire'], area).exclusive).toBeUndefined();
   });
 });
+
+describe('icone della catena evolutiva', async () => {
+  const { evoIcons } = await import('../src/lib/render');
+  it('mostra l’oggetto giusto per ogni modo di evolversi', () => {
+    expect(evoIcons([evo({ trigger: 'use-item', itemSlug: 'thunder-stone', item: { it: 'Pietratuono', en: 'Thunder Stone' } })], 'it')).toContain('items/thunder-stone.png');
+    expect(evoIcons([evo({ level: 16 })], 'it')).toContain('items/rare-candy.png');
+    expect(evoIcons([evo({ happiness: 220 })], 'it')).toContain('items/soothe-bell.png');
+    const trade = evoIcons([evo({ trigger: 'trade', heldSlug: 'metal-coat', held: { en: 'Metal Coat' } })], 'en');
+    expect(trade).toContain('<svg');
+    expect(trade).toContain('items/metal-coat.png');
+    expect(evoIcons([], 'it')).toBe('');
+  });
+});

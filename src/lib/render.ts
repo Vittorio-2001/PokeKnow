@@ -13,7 +13,7 @@ import {
 import { t } from './i18n';
 import { defensiveProfile, offensiveProfile } from './typechart';
 import { type Theme, themeFor } from './themes';
-import { type WhereData, evolutionsFor, howItEvolves, placeName, whereSummary } from './where';
+import { type Evolution, type WhereData, evolutionsFor, howItEvolves, placeName, whereSummary } from './where';
 import { type ChainMember, type ChainNode, chainTree } from './chain';
 import { RANGE_LEVELS, statRange } from './stats';
 import { GAME_PARAM, localePath } from './i18n';
@@ -294,6 +294,36 @@ function renderStats(stats: number[], evs: number[], pokemonId: number, lang: La
     ${evText ? `<p class="evs"><span class="evs__label">${esc(ui.evYield)}</span> <strong>${esc(evText)}</strong></p>` : ''}`;
 }
 
+const ITEMS = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items';
+
+// Icona dello scambio: disegnata per PokéKnow (due frecce opposte), 16×16.
+const TRADE_ICON =
+  '<svg class="evo__icon" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M10 2h1v1h1v1h1v1h1v1h-1v1h-1v1h-1v1h-1V7H2V5h8zM6 7h-1v1H4v1H3v1H2v1h1v1h1v1h1v1h1v-2h8V9H6z"/></svg>';
+
+/**
+ * Le icone che accompagnano la condizione di evoluzione: lo sprite dell'oggetto da usare o da tenere,
+ * la Caramella Rara per il livello, il Calmanella per l'amicizia, le frecce per lo scambio.
+ */
+export function evoIcons(rules: Evolution[], lang: Lang): string {
+  const ui = t(lang);
+  const icons = new Map<string, string>();
+  const item = (slug: string, label: string) =>
+    icons.set(
+      slug,
+      `<img class="evo__icon pixelated" src="${ITEMS}/${slug}.png" alt="" title="${esc(label)}" width="30" height="30" loading="lazy" />`,
+    );
+  for (const r of rules) {
+    if (r.trigger === 'trade') icons.set('trade', TRADE_ICON);
+    else if (r.trigger === 'use-item' && r.itemSlug) item(r.itemSlug, text(r.item, lang));
+    else if (r.trigger === 'level-up') {
+      if (r.happiness || r.affection) item('soothe-bell', ui.friendship);
+      else item('rare-candy', ui.levelUp);
+    }
+    if (r.heldSlug) item(r.heldSlug, text(r.held, lang));
+  }
+  return icons.size ? `<span class="evo__icons">${[...icons.values()].join('')}</span>` : '';
+}
+
 /** Catena evolutiva: ogni stadio con sprite dell'epoca, nome e come ci si arriva in questo gioco. */
 function renderChain(
   members: ChainMember[],
@@ -321,10 +351,12 @@ function renderChain(
       <span class="evo__name">${esc(name)}</span>
     </a>`;
     const many = n.next.length > 3;
+    const how = (child: ChainNode) =>
+      `<span class="evo__how">${evoIcons(child.rules, lang)}<span class="evo__text">${esc(howOrUnknown(child, ui.evolvesSomehow))}</span></span>`;
     const step = (child: ChainNode) =>
       many
-        ? `<li class="evo__step">${node(child)}<span class="evo__how">${esc(howOrUnknown(child, ui.evolvesSomehow))}</span></li>`
-        : `<li class="evo__step"><span class="evo__how">${esc(howOrUnknown(child, ui.evolvesSomehow))}</span>${node(child)}</li>`;
+        ? `<li class="evo__step">${node(child)}${how(child)}</li>`
+        : `<li class="evo__step">${how(child)}${node(child)}</li>`;
     // Con tante evoluzioni (Eevee) una sola freccia porta a una griglia, e ogni carta dice come ci si arriva.
     const next = n.next.length
       ? `${many ? '<span class="evo__arrow" aria-hidden="true"></span>' : ''}<ul class="evo__next${many ? ' evo__next--many' : ''}">${n.next.map(step).join('')}</ul>`

@@ -78,7 +78,7 @@ const FILES = [
   'encounters', 'encounter_slots', 'encounter_methods', 'encounter_condition_value_map', 'encounter_condition_values',
   'location_areas', 'location_area_prose', 'locations', 'location_names',
   'pokemon_evolution', 'evolution_triggers', 'item_names',
-  'pokemon_egg_groups', 'egg_group_prose', 'growth_rates', 'pokemon_shapes',
+  'pokemon_egg_groups', 'egg_group_prose', 'growth_rates', 'pokemon_shapes', 'items',
 ];
 
 async function exists(path) {
@@ -485,6 +485,7 @@ async function buildWhereData(csv, games, typeSlug) {
   const speciesFrom = new Map(csv.pokemon_species.map((s) => [s.id, s.evolves_from_species_id]));
   const speciesNames = namesBy(csv.pokemon_species_names, 'pokemon_species_id');
   const itemNames = namesBy(csv.item_names, 'item_id');
+  const itemSlug = new Map(csv.items.map((i) => [i.id, i.identifier]));
   const moveNames = namesBy(csv.move_names, 'move_id');
   const triggers = new Map(csv.evolution_triggers.map((t) => [t.id, t.identifier]));
   const groupOrder = new Map(csv.version_groups.map((g) => [g.id, Number(g.order)]));
@@ -502,6 +503,9 @@ async function buildWhereData(csv, games, typeSlug) {
       level: num(r.minimum_level),
       item: pick(itemNames, r.trigger_item_id),
       held: pick(itemNames, r.held_item_id),
+      // identificatori degli oggetti, per mostrarne lo sprite nella catena evolutiva
+      itemSlug: r.trigger_item_id ? itemSlug.get(r.trigger_item_id) ?? null : null,
+      heldSlug: r.held_item_id ? itemSlug.get(r.held_item_id) ?? null : null,
       move: pick(moveNames, r.known_move_id),
       moveType: r.known_move_type_id ? typeSlug.get(r.known_move_type_id) ?? null : null,
       location: r.location_id ? locationNames.get(r.location_id) ?? null : null,
