@@ -5,6 +5,8 @@ import { GAMES, VERSIONS, type Ability, type Lang, type Pokemon, defaultVersion,
 import { localePath, t } from '../lib/i18n';
 import type { Neighbour } from '../lib/paths';
 import type { WhereData } from '../lib/where';
+import type { ChainMember } from '../lib/chain';
+import { catchChance } from '../lib/stats';
 import { renderView, roman } from '../lib/render';
 import { themeFor } from '../lib/themes';
 import { href } from '../lib/url';
@@ -12,12 +14,13 @@ import { href } from '../lib/url';
 interface Props {
   pokemon: Pokemon;
   where: WhereData;
+  chain: ChainMember[];
   prev: Neighbour | null;
   next: Neighbour | null;
   lang: Lang;
 }
 
-const { pokemon, where, prev, next, lang } = Astro.props;
+const { pokemon, where, chain, prev, next, lang } = Astro.props;
 const ui = t(lang);
 const allAbilities = abilitiesJson as Record<string, Ability>;
 
@@ -26,7 +29,7 @@ const abilityIds = new Set(Object.values(pokemon.abilitiesByGen).flat().map((a) 
 const abilities = Object.fromEntries([...abilityIds].map((id) => [id, allAbilities[id]]));
 
 const version = defaultVersion(pokemon, lang);
-const view = renderView(pokemon, abilities, version, lang, where);
+const view = renderView(pokemon, abilities, version, lang, where, chain);
 const name = text(pokemon.name, lang);
 const genus = text(pokemon.genus, lang);
 const locale = lang === 'it' ? 'it-IT' : 'en-US';
@@ -34,7 +37,7 @@ const path = `pokemon/${pokemon.slug}/`;
 
 const generations = [...new Set(GAMES.map((g) => g.gen))];
 // `<` codificato: il JSON vive dentro un tag <script> e non deve poterlo chiudere.
-const payload = JSON.stringify({ pokemon, abilities, where, defaultVersion: version }).replaceAll('<', '\\u003c');
+const payload = JSON.stringify({ pokemon, abilities, where, chain, defaultVersion: version }).replaceAll('<', '\\u003c');
 
 // Per lo script nell'<head>: tema di ogni versione in cui il Pokémon è presente.
 const themeByVersion = Object.fromEntries(
@@ -144,6 +147,14 @@ const themeByVersion = Object.fromEntries(
       </div>
     </div>
 
+    <section class="section" aria-labelledby="h-chain">
+      <div class="section__head">
+        <h2 class="section__title display" id="h-chain">{ui.chainTitle}</h2>
+        <p class="section__aside">{ui.chainAside}</p>
+      </div>
+      <div data-slot="chain" set:html={view.slots.chain} />
+    </section>
+
     <section class="section" aria-labelledby="h-defense">
       <div class="section__head">
         <h2 class="section__title display" id="h-defense">{ui.defense}</h2>
@@ -175,6 +186,62 @@ const themeByVersion = Object.fromEntries(
         <div data-slot="abilities" set:html={view.slots.abilities} />
       </section>
     </div>
+
+    <section class="section" aria-labelledby="h-training">
+      <div class="section__head">
+        <h2 class="section__title display" id="h-training">{ui.trainingTitle}</h2>
+      </div>
+      <dl class="training">
+        <div>
+          <dt>{ui.catchRate}</dt>
+          <dd>
+            {pokemon.capture}
+            <span class="training__sub">{ui.catchChance(`${catchChance(pokemon.capture).toLocaleString(locale, { maximumFractionDigits: 1 })}%`)}</span>
+          </dd>
+        </div>
+        {pokemon.happiness !== null && (
+          <div>
+            <dt>{ui.baseHappiness}</dt>
+            <dd>{pokemon.happiness}</dd>
+          </div>
+        )}
+        {pokemon.baseExp !== null && (
+          <div>
+            <dt>{ui.baseExp}</dt>
+            <dd>{pokemon.baseExp}</dd>
+          </div>
+        )}
+        {pokemon.growth && (
+          <div>
+            <dt>{ui.growthRate}</dt>
+            <dd>{ui.growthRates[pokemon.growth] ?? pokemon.growth}</dd>
+          </div>
+        )}
+        <div>
+          <dt>{ui.gender}</dt>
+          <dd>
+            {pokemon.genderRate < 0
+              ? ui.genderless
+              : ui.genderSplit(
+                  `${((8 - pokemon.genderRate) * 12.5).toLocaleString(locale)}%`,
+                  `${(pokemon.genderRate * 12.5).toLocaleString(locale)}%`,
+                )}
+          </dd>
+        </div>
+        {pokemon.eggGroups.length > 0 && (
+          <div>
+            <dt>{ui.eggGroups}</dt>
+            <dd>{pokemon.eggGroups.map((g) => text(g, lang)).join(', ')}</dd>
+          </div>
+        )}
+        {pokemon.hatch !== null && (
+          <div>
+            <dt>{ui.eggCycles}</dt>
+            <dd>{ui.eggCyclesValue(pokemon.hatch)}</dd>
+          </div>
+        )}
+      </dl>
+    </section>
 
     <section class="section" aria-labelledby="h-where">
       <div class="section__head">
@@ -221,6 +288,7 @@ const themeByVersion = Object.fromEntries(
 <script>
   import { VERSION_BY_SLUG, isPresent, text, type Ability, type Pokemon } from '../lib/data';
   import type { WhereData } from '../lib/where';
+  import type { ChainMember } from '../lib/chain';
   import { GAME_PARAM, isLang, t } from '../lib/i18n';
   import { defaultSpriteUrl, renderView } from '../lib/render';
   import { placeSprite } from '../lib/sprite-anchor';
@@ -231,10 +299,11 @@ const themeByVersion = Object.fromEntries(
   const ui = t(lang);
   const PARAM = GAME_PARAM[lang];
 
-  const { pokemon, abilities, where, defaultVersion } = JSON.parse(document.getElementById('payload')!.textContent!) as {
+  const { pokemon, abilities, where, chain, defaultVersion } = JSON.parse(document.getElementById('payload')!.textContent!) as {
     pokemon: Pokemon;
     abilities: Record<string, Ability>;
     where: WhereData;
+    chain: ChainMember[];
     defaultVersion: string;
   };
 
@@ -321,7 +390,7 @@ const themeByVersion = Object.fromEntries(
   }
 
   function show(slug: string, animate: boolean) {
-    const view = renderView(pokemon, abilities, slug, lang, where);
+    const view = renderView(pokemon, abilities, slug, lang, where, chain);
     for (const [key, html] of Object.entries(view.slots)) {
       const el = slots.get(key);
       if (el) el.innerHTML = html;
@@ -405,7 +474,7 @@ const themeByVersion = Object.fromEntries(
   if (initial && initial !== defaultVersion) show(initial, false);
   else {
     if (initial) updateLangLinks(initial);
-    current = renderView(pokemon, abilities, defaultVersion, lang, where);
+    current = renderView(pokemon, abilities, defaultVersion, lang, where, chain);
     if (shiny) setSprite();
     else shinyButton.setAttribute('aria-pressed', 'false');
   }

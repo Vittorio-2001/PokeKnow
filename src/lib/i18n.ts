@@ -77,6 +77,37 @@ const it = {
 
   learnLevel: (n: number) => `Liv. ${n}`,
 
+  // statistiche approfondite
+  rangeHead: 'Liv. 100',
+  rangeTitle: 'Valore minimo e massimo al livello 100',
+  rangeNote:
+    'Al livello 100: minimo con IV 0, EV 0 e natura sfavorevole; massimo con IV 31, EV 252 e natura favorevole.',
+  evYield: 'EV ottenuti sconfiggendolo:',
+
+  // catena evolutiva
+  chainTitle: 'Catena evolutiva',
+  chainAside: 'Come si evolve in questo gioco',
+  noEvolution: 'Non si evolve e non ha pre-evoluzioni.',
+  evolvesSomehow: 'evoluzione',
+
+  // cattura e allevamento
+  trainingTitle: 'Cattura e allevamento',
+  catchRate: 'Tasso di cattura',
+  catchChance: (pct: string) => `${pct} con una Poké Ball a PS pieni`,
+  baseHappiness: 'Amicizia di base',
+  baseExp: 'Esperienza base',
+  growthRate: 'Crescita',
+  growthRates: {
+    slow: 'Lenta', medium: 'Media', fast: 'Veloce', 'medium-slow': 'Medio-lenta',
+    'slow-then-very-fast': 'Irregolare', 'fast-then-very-slow': 'Fluttuante',
+  } as Record<string, string>,
+  gender: 'Genere',
+  genderless: 'Senza genere',
+  genderSplit: (male: string, female: string) => `♂ ${male}, ♀ ${female}`,
+  eggGroups: 'Gruppi uova',
+  eggCycles: 'Schiusa',
+  eggCyclesValue: (n: number) => `${n} cicli`,
+
   // dove trovarlo
   whereTitle: 'Dove trovarlo',
   whereAside: 'Luoghi, modi e livelli in questo gioco',
@@ -271,6 +302,34 @@ const en: Dictionary = {
   dexNumber: (n) => `No. ${n}`,
 
   learnLevel: (n) => `Lv. ${n}`,
+
+  rangeHead: 'Lv. 100',
+  rangeTitle: 'Minimum and maximum value at level 100',
+  rangeNote:
+    'At level 100: minimum with 0 IVs, 0 EVs and a hindering nature; maximum with 31 IVs, 252 EVs and a beneficial nature.',
+  evYield: 'EVs given when defeated:',
+
+  chainTitle: 'Evolution chain',
+  chainAside: 'How it evolves in this game',
+  noEvolution: 'It doesn’t evolve and has no pre-evolutions.',
+  evolvesSomehow: 'evolves',
+
+  trainingTitle: 'Catching and breeding',
+  catchRate: 'Catch rate',
+  catchChance: (pct) => `${pct} with a Poké Ball at full HP`,
+  baseHappiness: 'Base friendship',
+  baseExp: 'Base experience',
+  growthRate: 'Growth rate',
+  growthRates: {
+    slow: 'Slow', medium: 'Medium Fast', fast: 'Fast', 'medium-slow': 'Medium Slow',
+    'slow-then-very-fast': 'Erratic', 'fast-then-very-slow': 'Fluctuating',
+  },
+  gender: 'Gender',
+  genderless: 'Genderless',
+  genderSplit: (male, female) => `♂ ${male}, ♀ ${female}`,
+  eggGroups: 'Egg groups',
+  eggCycles: 'Hatching',
+  eggCyclesValue: (n) => `${n} egg cycles`,
 
   whereTitle: 'Where to find it',
   whereAside: 'Locations, methods and levels in this game',

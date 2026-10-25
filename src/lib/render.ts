@@ -14,6 +14,10 @@ import { t } from './i18n';
 import { defensiveProfile, offensiveProfile } from './typechart';
 import { type Theme, themeFor } from './themes';
 import { type WhereData, evolutionsFor, howItEvolves, placeName, whereSummary } from './where';
+import { type ChainMember, type ChainNode, chainTree } from './chain';
+import { rangeAt100 } from './stats';
+import { GAME_PARAM, localePath } from './i18n';
+import { href } from './url';
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
 
@@ -95,6 +99,7 @@ export function renderView(
   versionSlug: string,
   lang: Lang,
   where?: WhereData,
+  chain?: ChainMember[],
 ): RenderedView {
   const version = VERSION_BY_SLUG.get(versionSlug);
   if (!version) throw new Error(`Versione sconosciuta: ${versionSlug}`);
@@ -117,7 +122,8 @@ export function renderView(
       generation: esc(ui.rulesOf(roman(gen))),
       defense: renderDefense(types, gen, lang),
       offense: renderOffense(types, gen, lang),
-      stats: renderStats(pokemon.statsByGen[gen] ?? [], lang),
+      stats: renderStats(pokemon.statsByGen[gen] ?? [], pokemon.evsByGen?.[gen] ?? [], pokemon.id, lang),
+      chain: chain ? renderChain(chain, pokemon.id, version.slug, game.group, gen, game.order, lang) : '',
       abilities: NO_ABILITIES.has(game.group)
         ? `<p class="muted">${esc(ui.noAbilitiesInGame(versionName))}</p>`
         : renderAbilities(pokemon.abilitiesByGen[gen] ?? [], abilities, lang),
@@ -246,21 +252,74 @@ function renderOffense(types: string[], gen: number, lang: Lang): string {
     .join('');
 }
 
-function renderStats(stats: number[], lang: Lang): string {
+function renderStats(stats: number[], evs: number[], pokemonId: number, lang: Lang): string {
   if (!stats.length) return '';
   const ui = t(lang);
   const total = stats.reduce((a, b) => a + b, 0);
+  const head = `<div class="stat stat--head" aria-hidden="true"><span></span><span></span><span></span><span class="stat__range">${esc(ui.rangeHead)}</span></div>`;
   const rows = stats
     .map((value, i) => {
       const width = Math.min(value / 180, 1) * 100;
+      const [min, max] = rangeAt100(value, i, pokemonId);
       return `<div class="stat">
         <span class="stat__label">${esc(ui.statLabels[i])}</span>
         <span class="stat__value">${value}</span>
         <span class="stat__bar" aria-hidden="true"><span style="width:${width.toFixed(1)}%"></span></span>
+        <span class="stat__range" title="${esc(ui.rangeTitle)}">${min}–${max}</span>
       </div>`;
     })
     .join('');
-  return `${rows}<div class="stat stat--total"><span class="stat__label">${esc(ui.total)}</span><span class="stat__value">${total}</span></div>`;
+  const evText = evs
+    .map((n, i) => (n ? `+${n} ${ui.statLabels[i]}` : ''))
+    .filter(Boolean)
+    .join(', ');
+  return `${head}${rows}<div class="stat stat--total"><span class="stat__label">${esc(ui.total)}</span><span class="stat__value">${total}</span></div>
+    <p class="stat__note">${esc(ui.rangeNote)}</p>
+    ${evText ? `<p class="evs"><span class="evs__label">${esc(ui.evYield)}</span> <strong>${esc(evText)}</strong></p>` : ''}`;
+}
+
+/** Catena evolutiva: ogni stadio con sprite dell'epoca, nome e come ci si arriva in questo gioco. */
+function renderChain(
+  members: ChainMember[],
+  currentId: number,
+  versionSlug: string,
+  group: string,
+  gen: number,
+  order: number,
+  lang: Lang,
+): string {
+  const ui = t(lang);
+  const trees = chainTree(members, gen, order);
+  const count = (nodes: ChainNode[]): number => nodes.reduce((n, node) => n + 1 + count(node.next), 0);
+  if (count(trees) <= 1) return `<p class="muted">${esc(ui.noEvolution)}</p>`;
+  const typeName = (slug: string) => text(TYPE_BY_SLUG.get(slug)?.name, lang);
+  const pixel = themeFor(group).pixel;
+
+  const node = (n: ChainNode): string => {
+    const m = n.member;
+    const name = text(m.name, lang);
+    const link = `${href(localePath(lang, `pokemon/${m.slug}/`))}?${GAME_PARAM[lang]}=${versionSlug}`;
+    const current = m.id === currentId;
+    const card = `<a class="evo__mon${current ? ' is-current' : ''}" href="${link}"${current ? ' aria-current="page"' : ''}>
+      <img class="${pixel ? 'pixelated' : ''}" src="${spriteUrl(m.id, group)}" alt="" width="64" height="64" loading="lazy" />
+      <span class="evo__name">${esc(name)}</span>
+    </a>`;
+    const many = n.next.length > 3;
+    const step = (child: ChainNode) =>
+      many
+        ? `<li class="evo__step">${node(child)}<span class="evo__how">${esc(howOrUnknown(child, ui.evolvesSomehow))}</span></li>`
+        : `<li class="evo__step"><span class="evo__how">${esc(howOrUnknown(child, ui.evolvesSomehow))}</span>${node(child)}</li>`;
+    // Con tante evoluzioni (Eevee) una sola freccia porta a una griglia, e ogni carta dice come ci si arriva.
+    const next = n.next.length
+      ? `${many ? '<span class="evo__arrow" aria-hidden="true"></span>' : ''}<ul class="evo__next${many ? ' evo__next--many' : ''}">${n.next.map(step).join('')}</ul>`
+      : '';
+    return `<div class="evo">${card}${next}</div>`;
+  };
+  function howOrUnknown(n: ChainNode, fallback: string): string {
+    if (!n.rules.length) return fallback;
+    return [...new Set(n.rules.map((r) => howItEvolves(r, lang, typeName)))].join(lang === 'it' ? ' oppure ' : ' or ');
+  }
+  return `<div class="chain">${trees.map(node).join('')}</div>`;
 }
 
 function renderAbilities(

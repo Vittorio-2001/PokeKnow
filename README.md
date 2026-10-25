@@ -14,6 +14,9 @@
   - Pokémon types changed over time are respected (Clefable is Normal until Gen V, Fairy afterwards);
   - so are base stats (Pikachu's Defense in Gen VI) and abilities, with hidden abilities only from Gen V;
   - games without abilities (Let's Go, the Legends titles) say so instead of showing wrong data.
+- **Evolution chain**: the whole family as a tree with era sprites and links, showing how each stage evolves in the selected game (Leafeon needs the Moss Rock in Platinum and a Leaf Stone in Sword) and only the Pokémon that exist in that generation.
+- **Deeper stats**: minimum and maximum values at level 100 for every stat, and the EVs the Pokémon gives when defeated.
+- **Catching and breeding**: catch rate with the chance of a Poké Ball at full HP, base friendship and experience, growth rate, gender ratio, egg groups and egg cycles.
 - **Where to find it**: for every game, a one-line summary (how many wild locations and from which level, gifts and in-game trades), **version exclusives** compared with the twin version (and whether the other version can get it by evolution or needs a trade), then the locations where the Pokémon appears with the method (grass, surfing, fishing, gifts, Wanderers…), levels, encounter rate and conditions such as time of day, weather, swarms or the GBA slot, plus how it evolves in that game.
 - **Shiny sprites**: a toggle on the sprite stage shows the shiny version from the same era's sprite set, and the choice is remembered.
 - **Nine era themes**: each generation has its own colors, typefaces, shapes, text box and sprite stage, inspired by the interfaces of its games.
@@ -47,7 +50,7 @@
 - Vanilla JavaScript on the client: no framework, a single small script per page
 - [PokéAPI](https://pokeapi.co) data (CSV dumps) and sprites
 - Self-hosted fonts through [Fontsource](https://fontsource.org): no requests to Google Fonts
-- [Vitest](https://vitest.dev) for the type chart, the translations, the Pokédex entry fallback, evolutions and encounters
+- [Vitest](https://vitest.dev) for the type chart, the translations, the Pokédex entry fallback, evolutions, encounters, evolution chains and stat formulas
 - GitHub Actions and GitHub Pages
 
 ## Getting started
@@ -70,6 +73,8 @@ scripts/fetch-data.mjs           data download and transformation
 src/lib/data.ts                  data types and helpers
 src/lib/typechart.ts             weaknesses, resistances and coverage per generation
 src/lib/where.ts                 encounters and how each Pokémon evolves
+src/lib/chain.ts                 evolution family as a tree, per game
+src/lib/stats.ts                 level 100 stat ranges and catch chance
 src/lib/render.ts                section HTML, shared by the build and the browser
 src/lib/themes.ts                which theme and which sprites for each game
 src/lib/sprite-anchor.ts         grounds sprites on the platform

@@ -58,10 +58,21 @@ export interface Pokemon {
   mythical: boolean;
   typesByGen: Record<string, string[]>;
   statsByGen: Record<string, number[]>;
+  /** EV che si ottengono sconfiggendolo, nello stesso ordine delle statistiche */
+  evsByGen: Record<string, number[]>;
   abilitiesByGen: Record<string, AbilityRef[]>;
   flavor: Record<string, Localized>;
   /** Gruppi di giochi in cui è presente, con l'eventuale numero nei Pokédex regionali. */
   games: Record<string, RegionalEntry[]>;
+  capture: number;
+  happiness: number | null;
+  baseExp: number | null;
+  growth: string | null;
+  /** -1 senza genere, altrimenti ottavi di probabilità di essere femmina */
+  genderRate: number;
+  hatch: number | null;
+  eggGroups: Localized[];
+  chain: number;
 }
 
 export interface IndexEntry {

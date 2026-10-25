@@ -78,6 +78,7 @@ const FILES = [
   'encounters', 'encounter_slots', 'encounter_methods', 'encounter_condition_value_map', 'encounter_condition_values',
   'location_areas', 'location_area_prose', 'locations', 'location_names',
   'pokemon_evolution', 'evolution_triggers', 'item_names',
+  'pokemon_egg_groups', 'egg_group_prose', 'growth_rates',
 ];
 
 async function exists(path) {
@@ -242,6 +243,16 @@ async function main() {
   const abilPast = groupBy(csv.pokemon_abilities_past, 'pokemon_id');
   const dexNumbers = groupBy(csv.pokemon_dex_numbers, 'species_id');
 
+  const growthSlug = new Map(csv.growth_rates.map((g) => [g.id, g.identifier]));
+  const eggGroupsBySpecies = groupBy(csv.pokemon_egg_groups, 'species_id');
+  const eggGroupNames = new Map();
+  for (const r of csv.egg_group_prose) {
+    const lang = r.local_language_id === '8' ? 'it' : r.local_language_id === '9' ? 'en' : null;
+    if (!lang) continue;
+    if (!eggGroupNames.has(r.egg_group_id)) eggGroupNames.set(r.egg_group_id, {});
+    eggGroupNames.get(r.egg_group_id)[lang] = r.name;
+  }
+
   const pokemon = [];
   for (const sp of csv.pokemon_species) {
     const id = Number(sp.id);
@@ -254,20 +265,23 @@ async function main() {
 
     const typesByGen = {};
     const statsByGen = {};
+    const evsByGen = {};
     const abilitiesByGen = {};
     for (let gen = Math.max(FIRST_GEN, introduced); gen <= LAST_GEN; gen++) {
       const pastT = pastFor(typesPast.get(pid) ?? [], gen);
       const tRows = (pastT ?? typesNow.get(pid)).slice().sort((a, b) => a.slot - b.slot);
       typesByGen[gen] = tRows.map((r) => typeSlug.get(r.type_id)).filter(Boolean);
 
-      const stats = (statsNow.get(pid) ?? [])
+      const statRows = (statsNow.get(pid) ?? [])
         .filter((r) => Number(r.stat_id) <= 6)
         .sort((a, b) => a.stat_id - b.stat_id)
         .map((r) => {
           const past = pastFor((statsPast.get(pid) ?? []).filter((p) => p.stat_id === r.stat_id), gen);
-          return Number((past ? past[0] : r).base_stat);
+          return past ? past[0] : r;
         });
-      statsByGen[gen] = stats;
+      statsByGen[gen] = statRows.map((r) => Number(r.base_stat));
+      // EV che si ottengono sconfiggendolo, nello stesso ordine delle statistiche
+      evsByGen[gen] = statRows.map((r) => Number(r.effort));
 
       const slots = new Map();
       for (const r of abilNow.get(pid) ?? []) slots.set(r.slot, r);
@@ -317,9 +331,19 @@ async function main() {
       mythical: sp.is_mythical === '1',
       typesByGen,
       statsByGen,
+      evsByGen,
       abilitiesByGen,
       flavor,
       games: games_,
+      // cattura e allevamento (valori attuali di PokéAPI)
+      capture: Number(sp.capture_rate),
+      happiness: num(sp.base_happiness),
+      baseExp: num(poke.base_experience),
+      growth: growthSlug.get(sp.growth_rate_id) ?? null,
+      genderRate: Number(sp.gender_rate), // -1 senza genere, altrimenti ottavi di femmine
+      hatch: num(sp.hatch_counter),
+      eggGroups: (eggGroupsBySpecies.get(sp.id) ?? []).map((r) => eggGroupNames.get(r.egg_group_id) ?? {}),
+      chain: Number(sp.evolution_chain_id),
     });
   }
 

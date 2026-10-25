@@ -3,6 +3,7 @@ import pokemonJson from '../data/generated/pokemon.json';
 import encountersJson from '../data/generated/encounters.json';
 import evolutionsJson from '../data/generated/evolutions.json';
 import type { Encounter, Evolution, WhereData } from './where';
+import type { ChainMember } from './chain';
 import type { Localized, Pokemon } from './data';
 
 export interface Neighbour {
@@ -46,11 +47,29 @@ export function whereFor(pokemon: Pokemon): WhereData {
   };
 }
 
+const byChain = new Map<number, Pokemon[]>();
+for (const p of pokemonJson as Pokemon[]) {
+  if (!byChain.has(p.chain)) byChain.set(p.chain, []);
+  byChain.get(p.chain)!.push(p);
+}
+
+/** Tutta la famiglia evolutiva, con le regole di evoluzione di ogni membro. */
+export function chainFor(pokemon: Pokemon): ChainMember[] {
+  return (byChain.get(pokemon.chain) ?? [pokemon]).map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    gen: p.gen,
+    from: evolutions[p.id]?.[0]?.from ?? null,
+    rules: evolutions[p.id] ?? [],
+  }));
+}
+
 export function pokemonPaths() {
   const all = pokemonJson as Pokemon[];
   const neighbour = (p: Pokemon | undefined): Neighbour | null => (p ? { slug: p.slug, name: p.name, id: p.id } : null);
   return all.map((pokemon, i) => ({
     params: { slug: pokemon.slug },
-    props: { pokemon, where: whereFor(pokemon), prev: neighbour(all[i - 1]), next: neighbour(all[i + 1]) },
+    props: { pokemon, where: whereFor(pokemon), chain: chainFor(pokemon), prev: neighbour(all[i - 1]), next: neighbour(all[i + 1]) },
   }));
 }
