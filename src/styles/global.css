@@ -1224,21 +1224,26 @@ h3 {
   display: flex;
   justify-content: center;
   gap: 0.25rem;
-  min-height: 34px;
+  min-height: 22px;
   align-items: center;
 }
 
-/* gli sprite degli oggetti hanno molto margine: raddoppiati (nitidi) e con margini negativi */
+/* gli sprite degli oggetti hanno molto margine trasparente: margini negativi per avvicinarli */
 .evo__icon {
-  width: 60px;
-  height: 60px;
-  margin: -14px -12px;
+  /* niente restringimento: nel flex le icone si schiacciavano in larghezza e sembravano allungate */
+  flex: none;
+  /* dimensione originale (30×30): resta nitida senza ingrandimenti a metà */
+  width: 30px;
+  height: 30px;
+  max-width: none;
+  margin: -5px -4px;
+  object-fit: contain;
   color: var(--ink);
 }
 
 svg.evo__icon {
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   margin: 0 0.25rem;
 }
 
