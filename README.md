@@ -16,7 +16,6 @@
   - games without abilities (Let's Go, the Legends titles) say so instead of showing wrong data.
 - **Where to find it**: for every game, the locations where the Pokémon appears with the method (grass, surfing, fishing, gifts, Wanderers…), levels, encounter rate and conditions such as time of day, weather, swarms or the GBA slot, plus how it evolves in that game.
 - **Shiny sprites**: a toggle on the sprite stage shows the shiny version from the same era's sprite set, and the choice is remembered.
-- **Story builds**: for every game, four recommended moves the Pokémon actually learns there by level-up or TM/HM, with the level or TM number, a suggested nature, its role (physical, special or mixed attacker) and the types the set hits super effectively.
 - **Nine era themes**: each generation has its own colors, typefaces, shapes, text box and sprite stage, inspired by the interfaces of its games.
 - **Version palettes**: every game pairs the colors of its two versions. Choose Sun and the sky fades from sun-orange into moon-violet; choose Moon and it flips. White and White 2 get a light take on the Unova theme.
 - **Sprites from each era**: original pixel art up to Gen V (animated in Black and White), 3D renders afterwards. Every sprite is measured at runtime so its feet rest on the battle platform instead of floating above it.
@@ -36,8 +35,6 @@
 
 **Themes as design tokens.** The layout is defined once in `global.css`. Each era theme in `themes.css` only redefines CSS custom properties (colors, fonts, radii, text box frame, stage background), plus a handful of signature details. Version palettes are two more tokens, `--v1` for the chosen version and `--v2` for its counterpart. A tiny inline script in `<head>` applies the right theme before the first paint, so you never see a flash of the wrong one.
 
-**Story builds you can explain.** `src/lib/builds.ts` picks moves with simple, readable rules instead of copying sets from elsewhere. Each damaging move gets an expected-damage score (power × accuracy × average hits, ×1.5 for same-type moves, scaled by the attacking stat it uses), with penalties for two-turn moves, self-lowering moves and recoil; moves that knock out the user or need special conditions are skipped. The set takes the best move of each of the Pokémon's types, then fills the remaining slots by multiplying power by the number of new types it covers, so a weak move never wins on coverage alone. A setup move takes the last slot when one fits the role. Move history matters here too: moves use the type, power and accuracy they had in that game, and before Gen IV the physical/special split depends on the move's type.
-
 **Sprite anchoring.** Sprites come with different amounts of transparent padding. `src/lib/sprite-anchor.ts` reads the visible pixels through a canvas and shifts the image so it is grounded on themes with a platform, or truly centered on the others.
 
 **Internationalization without a framework.** Every interface string lives in one typed dictionary per language (`src/lib/i18n.ts`); a test fails if a language is missing a key. Italian is served at the root and English under `/en/`, with `hreflang` alternates for search engines. Pages are thin wrappers around shared components, so adding a language means adding a dictionary and two route files.
@@ -50,7 +47,7 @@
 - Vanilla JavaScript on the client: no framework, a single small script per page
 - [PokéAPI](https://pokeapi.co) data (CSV dumps) and sprites
 - Self-hosted fonts through [Fontsource](https://fontsource.org): no requests to Google Fonts
-- [Vitest](https://vitest.dev) for the type chart, the translations, the Pokédex entry fallback, the story builds, evolutions and encounters
+- [Vitest](https://vitest.dev) for the type chart, the translations, the Pokédex entry fallback, evolutions and encounters
 - GitHub Actions and GitHub Pages
 
 ## Getting started
@@ -72,7 +69,6 @@ To refresh the PokéAPI data: `npm run data -- --refresh`.
 scripts/fetch-data.mjs           data download and transformation
 src/lib/data.ts                  data types and helpers
 src/lib/typechart.ts             weaknesses, resistances and coverage per generation
-src/lib/builds.ts                story builds: role, nature and four moves
 src/lib/where.ts                 encounters and how each Pokémon evolves
 src/lib/render.ts                section HTML, shared by the build and the browser
 src/lib/themes.ts                which theme and which sprites for each game
@@ -95,15 +91,13 @@ tests/                           Vitest tests
 - **Italian Pokédex entries**: PokéAPI only has them from X and Y up to Sword and Shield. When a game has no entry in the page language, the site shows the entry from the nearest game in that language, says which game it comes from, and keeps the game's original text one click away.
 - **Scarlet and Violet** have few entries in PokéAPI, and **Legends: Z-A** none yet. These games show the nearest available entry, clearly labeled with its source game.
 - Alternate forms (regional variants, Mega Evolutions, Gigantamax) are not included yet: only the default form.
-- **Legends: Z-A movesets** are not in PokéAPI yet, so that game has no story build for now.
 - **Encounter locations** are missing for Brilliant Diamond and Shining Pearl, Legends: Arceus, Scarlet and Violet, and Legends: Z-A, and partial for Omega Ruby and Alpha Sapphire. Many location names have no Italian translation in PokéAPI: the site uses the English name, turning "Route 12" into "Percorso 12".
 
 ## Roadmap
 
-1. Competitive sets, alongside the story builds.
-2. Regional forms and Mega Evolutions.
-3. More languages.
-4. A custom domain.
+1. Regional forms and Mega Evolutions.
+2. More languages.
+3. A custom domain.
 
 ## License
 

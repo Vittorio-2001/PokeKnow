@@ -13,7 +13,6 @@ import {
 import { t } from './i18n';
 import { defensiveProfile, offensiveProfile } from './typechart';
 import { type Theme, themeFor } from './themes';
-import type { Build, BuildMove } from './builds';
 import { type WhereData, evolutionsFor, howItEvolves } from './where';
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
@@ -95,7 +94,6 @@ export function renderView(
   abilities: Record<string, Ability>,
   versionSlug: string,
   lang: Lang,
-  builds: Record<string, Build | null> = {},
   where?: WhereData,
 ): RenderedView {
   const version = VERSION_BY_SLUG.get(versionSlug);
@@ -125,7 +123,6 @@ export function renderView(
         : renderAbilities(pokemon.abilitiesByGen[gen] ?? [], abilities, lang),
       dex: renderDex(pokemon, game.group, versionName, name, lang),
       where: where ? renderWhere(where, versionSlug, game.order, versionName, lang) : '',
-      build: renderBuild(builds[game.group], game.group in builds, gen, versionName, lang),
     },
   };
 }
@@ -296,59 +293,6 @@ function renderDex(pokemon: Pokemon, group: string, versionName: string, name: s
         `<li><span class="dex__name">${esc(text(e.dex, lang))}</span><span class="dex__n">${esc(ui.dexNumber(e.n))}</span></li>`,
     )
     .join('')}</ul>`;
-}
-
-/** Come si impara una mossa, nella lingua della pagina: "Liv. 32", "Evoluzione", "MT24", "MN04", "DT15". */
-export function howLearned(how: number | string, gen: number, lang: Lang): string {
-  const ui = t(lang);
-  if (typeof how === 'number') return how === 0 ? ui.learnEvolution : ui.learnLevel(Math.max(how, 1));
-  const match = /^(tm|hm|tr)(\d+)$/.exec(how);
-  if (!match) return how.toUpperCase();
-  const [, kind, n] = match;
-  // da Scarlatto e Violetto le MT hanno tre cifre (MT001)
-  return `${ui.machines[kind]}${n.padStart(kind === 'tm' && gen >= 9 ? 3 : 2, '0')}`;
-}
-
-function renderMove(move: BuildMove, gen: number, lang: Lang): string {
-  const ui = t(lang);
-  const meta =
-    move.cls === 'status'
-      ? `<span>${esc(ui.moveClasses.status)}</span><span class="tag">${esc(ui.setupMove)}</span>`
-      : `<span>${esc(ui.moveClasses[move.cls])}</span>` +
-        `<span>${esc(ui.power)} ${move.power ?? '—'}</span>` +
-        `<span>${esc(ui.accuracy)} ${move.acc ?? '—'}</span>`;
-  return `<li class="move">
-    <span class="move__type">${typeChip(move.type, lang, 'sm')}</span>
-    <span class="move__name">${esc(text(move.name, lang))}</span>
-    <span class="move__meta">${meta}</span>
-    <span class="move__how">${esc(howLearned(move.how, gen, lang))}</span>
-  </li>`;
-}
-
-function renderBuild(build: Build | null | undefined, hasData: boolean, gen: number, versionName: string, lang: Lang): string {
-  const ui = t(lang);
-  if (!hasData) return `<p class="muted">${esc(ui.noBuildData(versionName))}</p>`;
-  if (!build) return `<p class="muted">${esc(ui.noBuildMoves)}</p>`;
-  const role = ui.roles[build.role] + (build.speed ? `, ${ui.speeds[build.speed]}` : '');
-  const up = ui.statLabels[build.nature.up];
-  const down = ui.statLabels[build.nature.down];
-  return `<div class="build">
-    <div class="build__summary">
-      <p class="build__role">${esc(role)}</p>
-      <p class="build__nature">
-        <span class="build__label">${esc(ui.suggestedNature)}</span>
-        <strong>${esc(text(build.nature.name, lang))}</strong>
-        <span class="build__effect">+${esc(up)}, −${esc(down)}</span>
-      </p>
-    </div>
-    <ul class="build__moves">${build.moves.map((m) => renderMove(m, gen, lang)).join('')}</ul>
-    ${
-      build.coverage.length
-        ? `<div class="build__coverage"><span class="build__label">${esc(ui.coverage)}</span>${chips(build.coverage, lang)}</div>`
-        : ''
-    }
-    <p class="build__note">${esc(ui.buildNote)}</p>
-  </div>`;
 }
 
 // Modi di incontro in cui la probabilità non ha senso: il Pokémon è lì e basta.

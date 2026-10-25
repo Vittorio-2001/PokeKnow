@@ -75,24 +75,7 @@ const it = {
     `Non compare nel Pokédex regionale di ${game}, ma è presente nel Pokédex Nazionale del gioco.`,
   dexNumber: (n: number) => `n. ${n}`,
 
-  // build per la storia
-  storyBuild: 'Come usarlo nella storia',
-  buildAside: 'Calcolato dalle mosse che impara in questo gioco per livello e con MT/MN',
-  roles: { physical: 'Attaccante fisico', special: 'Attaccante speciale', mixed: 'Attaccante misto' } as Record<string, string>,
-  speeds: { fast: 'veloce', slow: 'lento' } as Record<string, string>,
-  suggestedNature: 'Natura consigliata',
-  moveClasses: { physical: 'Fisica', special: 'Speciale', status: 'Stato' } as Record<string, string>,
-  power: 'Potenza',
-  accuracy: 'Precisione',
   learnLevel: (n: number) => `Liv. ${n}`,
-  learnEvolution: 'Evoluzione',
-  machines: { tm: 'MT', hm: 'MN', tr: 'DT' } as Record<string, string>,
-  setupMove: 'Potenziamento',
-  coverage: 'Superefficace contro',
-  noBuildData: (game: string) => `Le mosse di ${game} non sono ancora nei dati: la build arriverà quando ci saranno.`,
-  noBuildMoves: 'In questo gioco non impara mosse d’attacco da livello o MT.',
-  buildNote:
-    'Niente allevamento né Insegnamosse: solo mosse che ottieni giocando. Le scelte privilegiano potenza, mosse dello stesso tipo del Pokémon e copertura dei tipi.',
 
   // dove trovarlo
   whereTitle: 'Dove trovarlo',
@@ -277,23 +260,7 @@ const en: Dictionary = {
     `It isn’t in the ${game} regional Pokédex, but it is in the game’s National Pokédex.`,
   dexNumber: (n) => `No. ${n}`,
 
-  storyBuild: 'Story build',
-  buildAside: 'Worked out from the moves it learns in this game by level-up and TM/HM',
-  roles: { physical: 'Physical attacker', special: 'Special attacker', mixed: 'Mixed attacker' },
-  speeds: { fast: 'fast', slow: 'slow' },
-  suggestedNature: 'Suggested nature',
-  moveClasses: { physical: 'Physical', special: 'Special', status: 'Status' },
-  power: 'Power',
-  accuracy: 'Accuracy',
   learnLevel: (n) => `Lv. ${n}`,
-  learnEvolution: 'On evolution',
-  machines: { tm: 'TM', hm: 'HM', tr: 'TR' },
-  setupMove: 'Setup',
-  coverage: 'Super effective against',
-  noBuildData: (game) => `${game} movesets aren’t in our data yet: the build will appear once they are.`,
-  noBuildMoves: 'It learns no attacking moves by level-up or TM in this game.',
-  buildNote:
-    'No breeding or move tutors: only moves you get by playing. Picks favour power, moves matching the Pokémon’s type, and type coverage.',
 
   whereTitle: 'Where to find it',
   whereAside: 'Locations, methods and levels in this game',
