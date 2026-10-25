@@ -78,10 +78,33 @@ const it = {
   learnLevel: (n: number) => `Liv. ${n}`,
 
   // statistiche approfondite
-  rangeHead: 'Liv. 100',
-  rangeTitle: 'Valore minimo e massimo al livello 100',
+  rangeTitle: (level: number) => `Valore minimo e massimo al livello ${level}`,
   rangeNote:
-    'Al livello 100: minimo con IV 0, EV 0 e natura sfavorevole; massimo con IV 31, EV 252 e natura favorevole.',
+    'Ai livelli 50 e 100: minimo con IV 0, EV 0 e natura sfavorevole; massimo con IV 31, EV 252 e natura favorevole.',
+  shape: 'Forma',
+  filterByShape: 'Filtra per forma',
+  shapes: {
+    'ball': "Solo testa",
+    'squiggle': "Serpentiforme",
+    'fish': "Con pinne",
+    'arms': "Testa e braccia",
+    'blob': "Testa e base",
+    'upright': "Bipede con coda",
+    'legs': "Testa e gambe",
+    'quadruped': "Quadrupede",
+    'wings': "Con un paio d’ali",
+    'tentacles': "Con tentacoli",
+    'heads': "Più corpi",
+    'humanoid': "Bipede senza coda",
+    'bug-wings': "Con più paia d’ali",
+    'armor': "Corpo d’insetto",
+  } as Record<string, string>,
+  footprint: 'Impronta',
+  footerFootprints: 'Impronte',
+  footerCollectedBy: 'raccolta di',
+  cry: 'Verso',
+  playCry: (name: string) => `Ascolta il verso di ${name}`,
+  cryUnavailable: 'Questo browser non riesce a riprodurre il verso.',
   evYield: 'EV ottenuti sconfiggendolo:',
 
   // catena evolutiva
@@ -231,7 +254,7 @@ const it = {
   // piè di pagina
   footerDisclaimer:
     'PokéKnow è un progetto amatoriale e senza scopo di lucro. Non è affiliato con Nintendo, Creatures Inc., GAME FREAK o The Pokémon Company. Pokémon e i nomi dei personaggi sono marchi dei rispettivi proprietari. I temi sono ispirati alle interfacce dei giochi di ogni epoca.',
-  footerData: 'Dati e sprite',
+  footerData: 'Dati, sprite e versi',
   footerIcon: 'Icona',
   footerIconBy: 'di Those Icons su',
 };
@@ -303,10 +326,33 @@ const en: Dictionary = {
 
   learnLevel: (n) => `Lv. ${n}`,
 
-  rangeHead: 'Lv. 100',
-  rangeTitle: 'Minimum and maximum value at level 100',
+  rangeTitle: (level) => `Minimum and maximum value at level ${level}`,
   rangeNote:
-    'At level 100: minimum with 0 IVs, 0 EVs and a hindering nature; maximum with 31 IVs, 252 EVs and a beneficial nature.',
+    'At levels 50 and 100: minimum with 0 IVs, 0 EVs and a hindering nature; maximum with 31 IVs, 252 EVs and a beneficial nature.',
+  shape: 'Shape',
+  filterByShape: 'Filter by shape',
+  shapes: {
+    'ball': "Head only",
+    'squiggle': "Serpentine",
+    'fish': "With fins",
+    'arms': "Head and arms",
+    'blob': "Head and base",
+    'upright': "Bipedal with tail",
+    'legs': "Head and legs",
+    'quadruped': "Quadruped",
+    'wings': "One pair of wings",
+    'tentacles': "Tentacles",
+    'heads': "Multiple bodies",
+    'humanoid': "Bipedal, no tail",
+    'bug-wings': "Two or more pairs of wings",
+    'armor': "Insectoid",
+  },
+  footprint: 'Footprint',
+  footerFootprints: 'Footprints',
+  footerCollectedBy: 'collected by',
+  cry: 'Cry',
+  playCry: (name) => `Play ${name}’s cry`,
+  cryUnavailable: 'This browser can’t play the cry.',
   evYield: 'EVs given when defeated:',
 
   chainTitle: 'Evolution chain',
@@ -450,7 +496,7 @@ const en: Dictionary = {
 
   footerDisclaimer:
     'PokéKnow is a free, non-commercial fan project. It is not affiliated with Nintendo, Creatures Inc., GAME FREAK or The Pokémon Company. Pokémon and Pokémon character names are trademarks of their respective owners. The themes are inspired by the interfaces of each era’s games.',
-  footerData: 'Data and sprites',
+  footerData: 'Data, sprites and cries',
   footerIcon: 'Icon',
   footerIconBy: 'by Those Icons on',
 };

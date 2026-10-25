@@ -7,6 +7,8 @@ import type { Neighbour } from '../lib/paths';
 import type { WhereData } from '../lib/where';
 import type { ChainMember } from '../lib/chain';
 import { catchChance } from '../lib/stats';
+import footprintsJson from '../data/footprints.json';
+import { shapeIcon } from '../lib/shapes';
 import { renderView, roman } from '../lib/render';
 import { themeFor } from '../lib/themes';
 import { href } from '../lib/url';
@@ -33,6 +35,8 @@ const view = renderView(pokemon, abilities, version, lang, where, chain);
 const name = text(pokemon.name, lang);
 const genus = text(pokemon.genus, lang);
 const locale = lang === 'it' ? 'it-IT' : 'en-US';
+// Impronte dalla raccolta di veekun: esistono nei giochi fino alla Gen V, e non per tutti (chi non ha piedi non lascia impronte).
+const footprint = (footprintsJson as Record<string, string>)[pokemon.id] ?? null;
 const path = `pokemon/${pokemon.slug}/`;
 
 const generations = [...new Set(GAMES.map((g) => g.gen))];
@@ -109,6 +113,13 @@ const themeByVersion = Object.fromEntries(
         <button class="shiny-toggle" type="button" aria-pressed="false" title={ui.shinyLabel} data-shiny-toggle>
           <span aria-hidden="true">✦</span> {ui.shiny}
         </button>
+        <button class="cry-button" type="button" aria-label={ui.playCry(name)} title={ui.playCry(name)} data-cry>
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" shape-rendering="crispEdges">
+            <path d="M1 6h3l4-4h1v12H8l-4-4H1z" fill="currentColor" />
+            <path d="M11 5h1v6h-1zM13 3h1v10h-1z" fill="currentColor" />
+          </svg>
+          {ui.cry}
+        </button>
         <img
           class="pixelated"
           data-stage-sprite
@@ -129,6 +140,20 @@ const themeByVersion = Object.fromEntries(
 
         <div class="facts">
           <div data-slot="types" set:html={view.slots.types} />
+          {
+            footprint && (
+              <svg
+                class="footprint"
+                viewBox="0 0 16 16"
+                role="img"
+                aria-label={`${ui.footprint}: ${name}`}
+                shape-rendering="crispEdges"
+              >
+                <title>{ui.footprint}</title>
+                <path d={footprint} fill="currentColor" />
+              </svg>
+            )
+          }
           <dl>
             <div>
               <dt>{ui.height}</dt>
@@ -138,6 +163,17 @@ const themeByVersion = Object.fromEntries(
               <dt>{ui.weight}</dt>
               <dd>{pokemon.weight.toLocaleString(locale)} kg</dd>
             </div>
+            {
+              pokemon.shape && (
+                <div class="facts__shape">
+                  <dt>{ui.shape}</dt>
+                  <dd>
+                    <Fragment set:html={shapeIcon(pokemon.shape, ui.shapes[pokemon.shape] ?? pokemon.shape)} />
+                    <span class="facts__shape-name">{ui.shapes[pokemon.shape]}</span>
+                  </dd>
+                </div>
+              )
+            }
             <div>
               <dt>{ui.debut}</dt>
               <dd>Gen {roman(pokemon.gen)}</dd>
@@ -290,7 +326,7 @@ const themeByVersion = Object.fromEntries(
   import type { WhereData } from '../lib/where';
   import type { ChainMember } from '../lib/chain';
   import { GAME_PARAM, isLang, t } from '../lib/i18n';
-  import { defaultSpriteUrl, renderView } from '../lib/render';
+  import { cryUrl, defaultSpriteUrl, renderView } from '../lib/render';
   import { placeSprite } from '../lib/sprite-anchor';
 
   // Il gioco scelto si ricorda tra le lingue: stessa chiave, parametro dell'URL tradotto.
@@ -403,11 +439,47 @@ const themeByVersion = Object.fromEntries(
     versionLabel.textContent = ui.dexOf(view.versionName);
     sprite.alt = ui.spriteAlt(name, view.versionName);
     current = view;
+    currentGen = view.gen;
     setSprite();
     select.value = slug;
     updateLangLinks(slug);
     if (animate) typeOut(slots.get('flavor')!.querySelector<HTMLElement>('.dialog__text:not(.dialog__text--empty)'));
   }
+
+  // Verso: il pulsante sul palco (o un clic sullo sprite) lo riproduce e fa "saltare" il Pokémon.
+  const cryButton = document.querySelector<HTMLButtonElement>('[data-cry]')!;
+  let currentGen = renderView(pokemon, abilities, defaultVersion, lang, where, chain).gen;
+  let audio: HTMLAudioElement | null = null;
+
+  function cheer() {
+    if (reduceMotion) return;
+    sprite.classList.remove('is-crying');
+    void sprite.offsetWidth; // fa ripartire l'animazione anche con clic ripetuti
+    sprite.classList.add('is-crying');
+  }
+
+  function playCry() {
+    const { primary, fallback } = cryUrl(pokemon.id, currentGen);
+    audio?.pause();
+    const start = (src: string, last: boolean) => {
+      const a = new Audio(src);
+      a.volume = 0.6;
+      audio = a;
+      a.addEventListener('playing', cheer, { once: true });
+      a.play().catch(() => {
+        if (!last) start(fallback, true);
+        else {
+          cryButton.disabled = true;
+          cryButton.title = ui.cryUnavailable;
+        }
+      });
+    };
+    start(primary, primary === fallback);
+  }
+
+  cryButton.addEventListener('click', playCry);
+  sprite.addEventListener('click', playCry);
+  sprite.addEventListener('animationend', () => sprite.classList.remove('is-crying'));
 
   // Sprite shiny: un interruttore sul palco, ricordato tra le pagine.
   const SHINY_KEY = 'pokeknow:shiny';

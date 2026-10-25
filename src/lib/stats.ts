@@ -9,15 +9,18 @@ export function statAt(base: number, index: number, level: number, iv: number, e
 }
 
 /**
- * Intervallo al livello 100: minimo con IV 0, EV 0 e natura sfavorevole,
+ * Intervallo a un livello: minimo con IV 0, EV 0 e natura sfavorevole,
  * massimo con IV 31, EV 252 e natura favorevole. Shedinja ha sempre 1 PS.
  */
-export function rangeAt100(base: number, index: number, pokemonId: number): [number, number] {
+export function statRange(base: number, index: number, pokemonId: number, level: number): [number, number] {
   if (index === 0 && pokemonId === 292) return [1, 1];
-  const min = statAt(base, index, 100, 0, 0, index === 0 ? 1 : 0.9);
-  const max = statAt(base, index, 100, 31, 252, index === 0 ? 1 : 1.1);
+  const min = statAt(base, index, level, 0, 0, index === 0 ? 1 : 0.9);
+  const max = statAt(base, index, level, 31, 252, index === 0 ? 1 : 1.1);
   return [min, max];
 }
+
+/** I livelli mostrati nella tabella: 50 (lotte ufficiali) e 100. */
+export const RANGE_LEVELS = [50, 100];
 
 /** Probabilità di cattura con una Poké Ball a PS pieni e senza stato, in percentuale. */
 export function catchChance(captureRate: number): number {

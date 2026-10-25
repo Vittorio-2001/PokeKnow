@@ -15,7 +15,9 @@
   - so are base stats (Pikachu's Defense in Gen VI) and abilities, with hidden abilities only from Gen V;
   - games without abilities (Let's Go, the Legends titles) say so instead of showing wrong data.
 - **Evolution chain**: the whole family as a tree with era sprites and links, showing how each stage evolves in the selected game (Leafeon needs the Moss Rock in Platinum and a Leaf Stone in Sword) and only the Pokémon that exist in that generation.
-- **Deeper stats**: minimum and maximum values at level 100 for every stat, and the EVs the Pokémon gives when defeated.
+- **Deeper stats**: minimum and maximum values at levels 50 and 100 for every stat, and the EVs the Pokémon gives when defeated.
+- **Cry, shape and footprint**: a button on the sprite stage (or a click on the sprite) plays the Pokémon's cry, original up to Gen V and modern afterwards, while the sprite hops. Next to height and weight sit the body shape, as in the games' Pokédex search, and the footprint (Gen I–V, from veekun).
+- **Search by shape**: like the in-game Pokédex, the home page filters by the 14 body shapes, with pixel pictograms drawn for PokéKnow.
 - **Catching and breeding**: catch rate with the chance of a Poké Ball at full HP, base friendship and experience, growth rate, gender ratio, egg groups and egg cycles.
 - **Where to find it**: for every game, a one-line summary (how many wild locations and from which level, gifts and in-game trades), **version exclusives** compared with the twin version (and whether the other version can get it by evolution or needs a trade), then the locations where the Pokémon appears with the method (grass, surfing, fishing, gifts, Wanderers…), levels, encounter rate and conditions such as time of day, weather, swarms or the GBA slot, plus how it evolves in that game.
 - **Shiny sprites**: a toggle on the sprite stage shows the shiny version from the same era's sprite set, and the choice is remembered.
@@ -74,7 +76,8 @@ src/lib/data.ts                  data types and helpers
 src/lib/typechart.ts             weaknesses, resistances and coverage per generation
 src/lib/where.ts                 encounters and how each Pokémon evolves
 src/lib/chain.ts                 evolution family as a tree, per game
-src/lib/stats.ts                 level 100 stat ranges and catch chance
+src/lib/stats.ts                 stat ranges and catch chance
+src/lib/shapes.ts                body shapes and their pixel pictograms
 src/lib/render.ts                section HTML, shared by the build and the browser
 src/lib/themes.ts                which theme and which sprites for each game
 src/lib/sprite-anchor.ts         grounds sprites on the platform
@@ -110,6 +113,6 @@ The source code is released under the [MIT License](LICENSE). The license covers
 
 ## Credits and disclaimer
 
-Data and sprites come from [PokéAPI](https://pokeapi.co). The site icon is [Pokedex](https://icons8.com/icon/ih6hQU67d27H/pokedex) by Those Icons on [Icons8](https://icons8.com). Fonts are distributed under the SIL Open Font License through Fontsource.
+Data and sprites come from [PokéAPI](https://pokeapi.co), cries from [PokéAPI Cries](https://github.com/PokeAPI/cries), footprints from the [veekun](https://veekun.com/dex/downloads) collection by eevee/lexy munroe (stored as vector paths in `src/data/footprints.json`). Body-shape pictograms are original pixel art made for PokéKnow. The site icon is [Pokedex](https://icons8.com/icon/ih6hQU67d27H/pokedex) by Those Icons on [Icons8](https://icons8.com). Fonts are distributed under the SIL Open Font License through Fontsource.
 
 PokéKnow is a free, non-commercial fan project. It is not affiliated with, endorsed or sponsored by Nintendo, Creatures Inc., GAME FREAK or The Pokémon Company. Pokémon and Pokémon character names are trademarks of their respective owners.

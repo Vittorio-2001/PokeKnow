@@ -78,7 +78,7 @@ const FILES = [
   'encounters', 'encounter_slots', 'encounter_methods', 'encounter_condition_value_map', 'encounter_condition_values',
   'location_areas', 'location_area_prose', 'locations', 'location_names',
   'pokemon_evolution', 'evolution_triggers', 'item_names',
-  'pokemon_egg_groups', 'egg_group_prose', 'growth_rates',
+  'pokemon_egg_groups', 'egg_group_prose', 'growth_rates', 'pokemon_shapes',
 ];
 
 async function exists(path) {
@@ -244,6 +244,7 @@ async function main() {
   const dexNumbers = groupBy(csv.pokemon_dex_numbers, 'species_id');
 
   const growthSlug = new Map(csv.growth_rates.map((g) => [g.id, g.identifier]));
+  const shapeSlug = new Map(csv.pokemon_shapes.map((s) => [s.id, s.identifier]));
   const eggGroupsBySpecies = groupBy(csv.pokemon_egg_groups, 'species_id');
   const eggGroupNames = new Map();
   for (const r of csv.egg_group_prose) {
@@ -344,6 +345,7 @@ async function main() {
       hatch: num(sp.hatch_counter),
       eggGroups: (eggGroupsBySpecies.get(sp.id) ?? []).map((r) => eggGroupNames.get(r.egg_group_id) ?? {}),
       chain: Number(sp.evolution_chain_id),
+      shape: shapeSlug.get(sp.shape_id) ?? null,
     });
   }
 
@@ -353,7 +355,7 @@ async function main() {
     abilities[id] = { name: abilityNames.get(id) ?? {}, desc: { it: d.it?.text ?? null, en: d.en?.text ?? null } };
   }
 
-  const index = pokemon.map((p) => ({ id: p.id, slug: p.slug, name: { it: p.name.it ?? p.name.en, en: p.name.en ?? p.name.it }, types: p.typesByGen[LAST_GEN] }));
+  const index = pokemon.map((p) => ({ id: p.id, slug: p.slug, name: { it: p.name.it ?? p.name.en, en: p.name.en ?? p.name.it }, types: p.typesByGen[LAST_GEN], shape: p.shape }));
 
   await writeFile(join(OUT, 'types.json'), JSON.stringify({ types, chart }));
   await writeFile(join(OUT, 'games.json'), JSON.stringify(games));

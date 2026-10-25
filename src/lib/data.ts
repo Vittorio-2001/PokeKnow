@@ -73,6 +73,8 @@ export interface Pokemon {
   hatch: number | null;
   eggGroups: Localized[];
   chain: number;
+  /** forma del corpo, come nella ricerca per forma del Pokédex */
+  shape: string | null;
 }
 
 export interface IndexEntry {
@@ -80,6 +82,7 @@ export interface IndexEntry {
   slug: string;
   name: Localized;
   types: string[];
+  shape: string | null;
 }
 
 export const TYPES = (typesJson as { types: TypeInfo[] }).types;

@@ -15,7 +15,7 @@ import { defensiveProfile, offensiveProfile } from './typechart';
 import { type Theme, themeFor } from './themes';
 import { type WhereData, evolutionsFor, howItEvolves, placeName, whereSummary } from './where';
 import { type ChainMember, type ChainNode, chainTree } from './chain';
-import { rangeAt100 } from './stats';
+import { RANGE_LEVELS, statRange } from './stats';
 import { GAME_PARAM, localePath } from './i18n';
 import { href } from './url';
 
@@ -45,6 +45,17 @@ export function spriteUrl(id: number, group?: string, shiny = false): string {
     return `${SPRITES}/${path}`;
   }
   return themeFor(group).pixel ? `${SPRITES}/${s}${id}.png` : `${SPRITES}/other/home/${s}${id}.png`;
+}
+
+const CRIES = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon';
+
+/**
+ * Verso del Pokémon: fino alla Gen V quello originale ("legacy"), dopo quello attuale.
+ * Il verso originale non esiste per tutti: lo script della pagina ripiega su quello attuale.
+ */
+export function cryUrl(id: number, gen: number): { primary: string; fallback: string } {
+  const latest = `${CRIES}/latest/${id}.ogg`;
+  return { primary: gen <= 5 ? `${CRIES}/legacy/${id}.ogg` : latest, fallback: latest };
 }
 
 export function defaultSpriteUrl(id: number, shiny = false): string {
@@ -256,16 +267,21 @@ function renderStats(stats: number[], evs: number[], pokemonId: number, lang: La
   if (!stats.length) return '';
   const ui = t(lang);
   const total = stats.reduce((a, b) => a + b, 0);
-  const head = `<div class="stat stat--head" aria-hidden="true"><span></span><span></span><span></span><span class="stat__range">${esc(ui.rangeHead)}</span></div>`;
+  const head = `<div class="stat stat--head" aria-hidden="true"><span></span><span></span><span></span>${RANGE_LEVELS.map(
+    (level) => `<span class="stat__range">${esc(ui.learnLevel(level))}</span>`,
+  ).join('')}</div>`;
   const rows = stats
     .map((value, i) => {
       const width = Math.min(value / 180, 1) * 100;
-      const [min, max] = rangeAt100(value, i, pokemonId);
+      const ranges = RANGE_LEVELS.map((level) => {
+        const [min, max] = statRange(value, i, pokemonId, level);
+        return `<span class="stat__range" title="${esc(ui.rangeTitle(level))}">${min}–${max}</span>`;
+      }).join('');
       return `<div class="stat">
         <span class="stat__label">${esc(ui.statLabels[i])}</span>
         <span class="stat__value">${value}</span>
         <span class="stat__bar" aria-hidden="true"><span style="width:${width.toFixed(1)}%"></span></span>
-        <span class="stat__range" title="${esc(ui.rangeTitle)}">${min}–${max}</span>
+        ${ranges}
       </div>`;
     })
     .join('');
