@@ -50,6 +50,14 @@ export function machineLabel(code: string, gen: number, lang: Lang): string {
   return `${t(lang).machines[kind]}${n.padStart(kind === 'tm' && gen >= 9 ? 3 : 2, '0')}`;
 }
 
+// Colori delle etichette di categoria (fisica, speciale, stato), come le chip dei tipi.
+const CLASS_COLORS: Record<string, string> = { physical: '#b3261e', special: '#3f4a6b', status: '#77737a' };
+
+/** Etichetta della categoria: chip colorata con il nome, come quelle dei tipi. */
+export function classChip(cls: string, lang: Lang): string {
+  return `<span class="type type--sm cls-chip" style="--type:${CLASS_COLORS[cls] ?? '#777'}">${esc(t(lang).moveClasses[cls] ?? cls)}</span>`;
+}
+
 export const METHODS = ['L', 'M', 'E', 'T'] as const;
 
 /** Testo per la ricerca: minuscolo e senza accenti, così "pallaombra" o "palla ombra" trovano Palla Ombra. */
@@ -133,8 +141,8 @@ export function renderMoves(
           return `<tr data-search="${esc(key)}">
             ${m === 'L' || m === 'M' ? `<td class="moves__how">${esc(how)}</td>` : ''}
             <th scope="row" class="moves__name">${esc(text(info.name, lang))}${also}</th>
-            <td>${g.type ? typeChip(g.type, lang, 'sm') : ''}</td>
-            <td class="moves__cls moves__cls--${g.cls}" title="${esc(ui.moveClasses[g.cls])}"><span class="moves__cls-text">${esc(ui.moveClasses[g.cls])}</span></td>
+            <td class="moves__chip">${g.type ? typeChip(g.type, lang, 'sm') : ''}</td>
+            <td class="moves__chip">${classChip(g.cls, lang)}</td>
             <td class="moves__num">${g.power ?? '—'}</td>
             <td class="moves__num">${g.acc ?? '—'}</td>
             <td class="moves__num">${g.pp ?? '—'}</td>
@@ -144,7 +152,7 @@ export function renderMoves(
       const howHead = m === 'L' ? `<th scope="col">${esc(ui.colLevel)}</th>` : m === 'M' ? `<th scope="col">${esc(ui.colMachine)}</th>` : '';
       return `<div class="moves__panel" role="tabpanel" data-panel="${m}"${m === open ? '' : ' hidden'}>
         <table class="moves__table">
-          <thead><tr>${howHead}<th scope="col">${esc(ui.colMove)}</th><th scope="col">${esc(ui.colType)}</th><th scope="col"><span class="moves__cls-text">${esc(ui.colClass)}</span></th><th scope="col" class="moves__num">${esc(ui.colPower)}</th><th scope="col" class="moves__num">${esc(ui.colAccuracy)}</th><th scope="col" class="moves__num">PP</th></tr></thead>
+          <thead><tr>${howHead}<th scope="col">${esc(ui.colMove)}</th><th scope="col" class="moves__chip">${esc(ui.colType)}</th><th scope="col" class="moves__chip">${esc(ui.colClass)}</th><th scope="col" class="moves__num">${esc(ui.colPower)}</th><th scope="col" class="moves__num">${esc(ui.colAccuracy)}</th><th scope="col" class="moves__num">PP</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
         <p class="muted moves__empty" hidden>${esc(ui.movesNotFound)}</p>

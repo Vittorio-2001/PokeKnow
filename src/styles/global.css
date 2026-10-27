@@ -537,24 +537,23 @@ h3 {
   padding-right: 0.25rem;
 }
 
-.moves__cls {
-  font-size: var(--step--1);
+.moves__table .moves__chip {
+  text-align: center;
 }
 
-.moves__cls--physical::before,
-.moves__cls--special::before,
-.moves__cls--status::before {
-  content: '';
-  display: inline-block;
-  width: 0.6em;
-  height: 0.6em;
-  margin-right: 0.35em;
-  vertical-align: 0.05em;
+/* tipo e categoria tutti della stessa larghezza, con il testo al centro */
+.moves__chip .type {
+  display: block;
+  box-sizing: border-box;
+  width: 7.25rem;
+  margin-inline: auto;
+  text-align: center;
 }
 
-.moves__cls--physical::before { background: #c92112; }
-.moves__cls--special::before { background: #4f5870; border-radius: 50%; }
-.moves__cls--status::before { background: #8c888c; transform: rotate(45deg) scale(0.85); }
+/* etichetta della categoria: come una chip dei tipi, ma con testo chiaro sui colori scuri */
+.type.cls-chip {
+  color: #fff;
+}
 
 @media (max-width: 40rem) {
   .moves__search {
@@ -571,14 +570,8 @@ h3 {
     min-width: 7rem;
   }
 
-  /* su telefono la categoria resta solo come simbolo (il nome è nel tooltip e per i lettori di schermo) */
-  .moves__cls-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+  .moves__chip .type {
+    width: 6.25rem;
   }
 }
 
