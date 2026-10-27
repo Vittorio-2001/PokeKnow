@@ -5,6 +5,7 @@ import { GAMES, VERSIONS, VERSION_BY_SLUG, type Ability, type Lang, type Pokemon
 import { localePath, t } from '../lib/i18n';
 import { type Neighbour, movesFor } from '../lib/paths';
 import { renderMoves } from '../lib/moves';
+import { megasIn, renderMegaButtons } from '../lib/forms';
 import type { WhereData } from '../lib/where';
 import type { ChainMember } from '../lib/chain';
 import { catchChance } from '../lib/stats';
@@ -28,7 +29,9 @@ const ui = t(lang);
 const allAbilities = abilitiesJson as Record<string, Ability>;
 
 // Solo le abilità che servono a questa pagina finiscono nel payload del browser.
-const abilityIds = new Set(Object.values(pokemon.abilitiesByGen).flat().map((a) => String(a.id)));
+const abilityIds = new Set(
+  [...Object.values(pokemon.abilitiesByGen).flat(), ...(pokemon.megas ?? []).flatMap((m) => m.abilities)].map((a) => String(a.id)),
+);
 const abilities = Object.fromEntries([...abilityIds].map((id) => [id, allAbilities[id]]));
 
 const version = defaultVersion(pokemon, lang);
@@ -85,7 +88,7 @@ const themeByVersion = Object.fromEntries(
     <header class="entry-head">
       <div>
         <p class="entry-head__n">#{padId(pokemon.id)}</p>
-        <h1 class="entry-head__name display">{name}</h1>
+        <h1 class="entry-head__name display" data-name>{name}</h1>
         <p class="entry-head__genus">
           {genus}
           {pokemon.legendary && <span class="tag">{ui.legendary}</span>}
@@ -125,6 +128,7 @@ const themeByVersion = Object.fromEntries(
           </svg>
           {ui.cry}
         </button>
+        <div class="mega-buttons" data-mega-buttons set:html={renderMegaButtons(megasIn(pokemon, game.group), lang, null)} />
         <img
           class="pixelated"
           data-stage-sprite
@@ -162,11 +166,11 @@ const themeByVersion = Object.fromEntries(
           <dl>
             <div>
               <dt>{ui.height}</dt>
-              <dd>{pokemon.height.toLocaleString(locale)} m</dd>
+              <dd data-height>{pokemon.height.toLocaleString(locale)} m</dd>
             </div>
             <div>
               <dt>{ui.weight}</dt>
-              <dd>{pokemon.weight.toLocaleString(locale)} kg</dd>
+              <dd data-weight>{pokemon.weight.toLocaleString(locale)} kg</dd>
             </div>
             {
               pokemon.shape && (
@@ -179,6 +183,10 @@ const themeByVersion = Object.fromEntries(
                 </div>
               )
             }
+            <div class="facts__mega" data-mega-how hidden>
+              <dt>{ui.megaHow}</dt>
+              <dd></dd>
+            </div>
             <div>
               <dt>{ui.debut}</dt>
               <dd>Gen {roman(pokemon.gen)}</dd>
@@ -342,6 +350,7 @@ const themeByVersion = Object.fromEntries(
   import { cryUrl, defaultSpriteUrl, renderView } from '../lib/render';
   import { placeSprite } from '../lib/sprite-anchor';
   import { type MovesData, filterMoves, renderMoves } from '../lib/moves';
+  import { asMega, megasIn, renderMegaButtons, renderMegaHow } from '../lib/forms';
   import { href } from '../lib/url';
 
   // Il gioco scelto si ricorda tra le lingue: stessa chiave, parametro dell'URL tradotto.
@@ -440,8 +449,34 @@ const themeByVersion = Object.fromEntries(
     );
   }
 
+  // Megaevoluzione mostrata (slug della forma), se nel gioco scelto esiste.
+  let megaSlug: string | null = null;
+  const megaButtons = document.querySelector<HTMLElement>('[data-mega-buttons]')!;
+  const nameEl = document.querySelector<HTMLElement>('[data-name]')!;
+  const heightEl = document.querySelector<HTMLElement>('[data-height]')!;
+  const weightEl = document.querySelector<HTMLElement>('[data-weight]')!;
+  const megaHow = document.querySelector<HTMLElement>('[data-mega-how]')!;
+  const locale = lang === 'it' ? 'it-IT' : 'en-US';
+
   function show(slug: string, animate: boolean) {
-    const view = renderView(pokemon, abilities, slug, lang, where, chain);
+    const { game } = VERSION_BY_SLUG.get(slug)!;
+    const megas = megasIn(pokemon, game.group);
+    const mega = megas.find((m) => m.slug === megaSlug) ?? null;
+    if (!mega) megaSlug = null;
+    // la Mega attiva resta nell'URL, così il link condiviso la mostra
+    const url = new URL(location.href);
+    if (megaSlug) url.searchParams.set('mega', megaSlug);
+    else url.searchParams.delete('mega');
+    history.replaceState(null, '', url);
+    megaButtons.innerHTML = renderMegaButtons(megas, lang, megaSlug);
+    const shown = mega ? text(mega.name, lang) : name;
+    nameEl.textContent = shown;
+    heightEl.textContent = `${(mega?.height ?? pokemon.height).toLocaleString(locale)} m`;
+    weightEl.textContent = `${(mega?.weight ?? pokemon.weight).toLocaleString(locale)} kg`;
+    megaHow.hidden = !mega;
+    megaHow.querySelector('dd')!.innerHTML = mega ? renderMegaHow(mega, lang) : '';
+
+    const view = renderView(mega ? asMega(pokemon, mega) : pokemon, abilities, slug, lang, where, chain);
     for (const [key, html] of Object.entries(view.slots)) {
       const el = slots.get(key);
       if (el) el.innerHTML = html;
@@ -452,7 +487,7 @@ const themeByVersion = Object.fromEntries(
     root.dataset.version = slug;
 
     versionLabel.textContent = ui.dexOf(view.versionName);
-    sprite.alt = ui.spriteAlt(name, view.versionName);
+    sprite.alt = ui.spriteAlt(shown, view.versionName);
     current = view;
     currentGen = view.gen;
     setSprite();
@@ -520,6 +555,24 @@ const themeByVersion = Object.fromEntries(
     const next = tabs[(i + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
     next.focus();
     next.click();
+  });
+
+  // Nella catena evolutiva la carta della Mega di questo Pokémon fa come il pulsante sul palco.
+  slots.get('chain')!.addEventListener('click', (event) => {
+    const card = (event.target as HTMLElement).closest<HTMLAnchorElement>('[data-chain-mega]');
+    if (!card?.dataset.chainMega) return;
+    event.preventDefault();
+    megaSlug = megaSlug === card.dataset.chainMega ? null : card.dataset.chainMega;
+    show(select.value, false);
+    document.querySelector('.entry-head')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+  });
+
+  // Pulsanti Mega sul palco: un clic mostra la forma, un secondo clic torna alla forma normale.
+  megaButtons.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-mega]');
+    if (!button) return;
+    megaSlug = megaSlug === button.dataset.mega ? null : button.dataset.mega!;
+    show(select.value, false);
   });
 
   // Verso: il pulsante sul palco (o un clic sullo sprite) lo riproduce e fa "saltare" il Pokémon.
@@ -619,7 +672,10 @@ const themeByVersion = Object.fromEntries(
   const params = new URLSearchParams(location.search);
   const fromUrl = params.get(PARAM) ?? params.get('gioco') ?? params.get('game');
   const initial = [fromUrl, readStorage()].find(usable);
-  if (initial && initial !== defaultVersion) show(initial, false);
+  // ?mega=charizard-mega-x arriva dalla catena evolutiva di un altro Pokémon: si apre con la Mega attiva
+  megaSlug = params.get('mega');
+  if (megaSlug) show(initial ?? defaultVersion, false);
+  else if (initial && initial !== defaultVersion) show(initial, false);
   else {
     if (initial) updateLangLinks(initial);
     current = renderView(pokemon, abilities, defaultVersion, lang, where, chain);

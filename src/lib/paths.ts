@@ -65,6 +65,7 @@ export function chainFor(pokemon: Pokemon): ChainMember[] {
     gen: p.gen,
     from: evolutions[p.id]?.[0]?.from ?? null,
     rules: evolutions[p.id] ?? [],
+    ...(p.megas ? { megas: p.megas } : {}),
   }));
 }
 

@@ -80,7 +80,24 @@ const FILES = [
   'pokemon_evolution', 'evolution_triggers', 'item_names',
   'pokemon_egg_groups', 'egg_group_prose', 'growth_rates', 'pokemon_shapes', 'items',
   'pokemon_moves', 'moves', 'move_changelog', 'machines',
+  'pokemon_forms', 'pokemon_form_names',
 ];
+
+// ---------- Megaevoluzioni: in quali giochi esistono ----------
+// PokéAPI dice solo in che gioco è nata ogni Mega; dopo X e Y sono rimaste in ROZA, Sole e Luna,
+// Ultrasole e Ultraluna e Leggende Z-A (dove sono tornate tutte), e in Let's Go solo quelle di Kanto.
+const MEGA_GROUPS = {
+  'x-y': ['x-y', 'omega-ruby-alpha-sapphire', 'sun-moon', 'ultra-sun-ultra-moon', 'legends-za'],
+  'omega-ruby-alpha-sapphire': ['omega-ruby-alpha-sapphire', 'sun-moon', 'ultra-sun-ultra-moon', 'legends-za'],
+  'legends-za': ['legends-za'],
+  'mega-dimension': ['legends-za'],
+};
+const LETS_GO_MEGAS = new Set([
+  'venusaur-mega', 'charizard-mega-x', 'charizard-mega-y', 'blastoise-mega', 'beedrill-mega', 'pidgeot-mega',
+  'alakazam-mega', 'slowbro-mega', 'gengar-mega', 'kangaskhan-mega', 'pinsir-mega', 'gyarados-mega',
+  'aerodactyl-mega', 'mewtwo-mega-x', 'mewtwo-mega-y',
+]);
+const MEGA_STONE_CATEGORY = '44';
 
 async function exists(path) {
   try { await access(path); return true; } catch { return false; }
@@ -255,6 +272,8 @@ async function main() {
     eggGroupNames.get(r.egg_group_id)[lang] = r.name;
   }
 
+  const megasBySpecies = buildMegas(csv, typeSlug, usedAbilities);
+
   const pokemon = [];
   for (const sp of csv.pokemon_species) {
     const id = Number(sp.id);
@@ -347,6 +366,7 @@ async function main() {
       eggGroups: (eggGroupsBySpecies.get(sp.id) ?? []).map((r) => eggGroupNames.get(r.egg_group_id) ?? {}),
       chain: Number(sp.evolution_chain_id),
       shape: shapeSlug.get(sp.shape_id) ?? null,
+      ...(megasBySpecies.has(sp.id) ? { megas: megasBySpecies.get(sp.id) } : {}),
     });
   }
 
@@ -367,6 +387,90 @@ async function main() {
   await buildWhereData(csv, games, typeSlug);
   await buildLearnsets(csv, games, typeSlug);
   console.log(`Fatto: ${pokemon.length} Pokémon, ${games.length} giochi, ${types.length} tipi.`);
+}
+
+/**
+ * Megaevoluzioni di ogni specie: tipi, statistiche, abilità, altezza e peso della forma Mega,
+ * la Megapietra (o la mossa, per Rayquaza) e i giochi in cui esiste.
+ * Solo le Mega della forma predefinita (niente Meowstic femmina o Tatsugiri Ricurvo, che il sito non mostra).
+ */
+function buildMegas(csv, typeSlug, usedAbilities) {
+  const groupSlug = new Map(csv.version_groups.map((g) => [g.id, g.identifier]));
+  const pokemonById = new Map(csv.pokemon.map((p) => [p.id, p]));
+  const defaultBySpecies = new Map(csv.pokemon.filter((p) => p.is_default === '1').map((p) => [p.species_id, p]));
+  const speciesSlug = new Map(csv.pokemon_species.map((s) => [s.id, s.identifier]));
+  const speciesNames = groupBy(csv.pokemon_species_names, 'pokemon_species_id');
+  const formNames = groupBy(csv.pokemon_form_names, 'pokemon_form_id');
+  const typesBy = groupBy(csv.pokemon_types, 'pokemon_id');
+  const statsBy = groupBy(csv.pokemon_stats, 'pokemon_id');
+  const abilBy = groupBy(csv.pokemon_abilities, 'pokemon_id');
+  const itemNames = groupBy(csv.item_names, 'item_id');
+  const stones = csv.items.filter((i) => i.category_id === MEGA_STONE_CATEGORY);
+  const nameIn = (rows, lang, field) => rows?.find((r) => r.local_language_id === String(LANG[lang]))?.[field] || null;
+
+  // Megapietra: stesso inizio del nome della specie e stesso suffisso (charizardite-x per Mega Charizard X)
+  function stoneFor(base, suffix) {
+    for (let n = base.length; n >= 4; n--) {
+      const found = stones.filter((s) => s.identifier.startsWith(base.slice(0, n)) && (suffix ? s.identifier.endsWith(`-${suffix}`) : !/-[xyz]$/.test(s.identifier)));
+      if (found.length === 1) return found[0];
+      if (found.length > 1) return null;
+    }
+    return null;
+  }
+
+  const bySpecies = new Map();
+  for (const form of csv.pokemon_forms) {
+    if (form.is_mega !== '1') continue;
+    const poke = pokemonById.get(form.pokemon_id);
+    if (!poke || Number(poke.species_id) > LAST_SPECIES) continue;
+    const base = defaultBySpecies.get(poke.species_id);
+    const [prefix, rest = ''] = poke.identifier.split('-mega');
+    if (prefix !== base.identifier && prefix !== speciesSlug.get(poke.species_id)) continue;
+    const suffix = rest.replace(/^-/, ''); // '', 'x', 'y', 'z'
+    const intro = groupSlug.get(form.introduced_in_version_group_id);
+    const groups = [...(MEGA_GROUPS[intro] ?? ['legends-za'])];
+    if (LETS_GO_MEGAS.has(poke.identifier)) groups.push('lets-go-pikachu-lets-go-eevee');
+
+    const speciesName = (lang) => nameIn(speciesNames.get(poke.species_id), lang, 'name');
+    const tail = suffix ? ` ${suffix.toUpperCase()}` : '';
+    const names = formNames.get(form.id);
+    const name = {
+      it: nameIn(names, 'it', 'form_name') ?? `Mega${speciesName('it') ?? speciesName('en')}${tail}`,
+      en: nameIn(names, 'en', 'pokemon_name') ?? nameIn(names, 'en', 'form_name') ?? `Mega ${speciesName('en')}${tail}`,
+    };
+
+    const stone = stoneFor(speciesSlug.get(poke.species_id), suffix);
+    const abilities = (abilBy.get(poke.id) ?? []).sort((a, b) => a.slot - b.slot).map((r) => {
+      usedAbilities.add(r.ability_id);
+      return { id: Number(r.ability_id), hidden: false };
+    });
+
+    const mega = {
+      id: Number(poke.id),
+      slug: poke.identifier,
+      suffix,
+      name,
+      types: (typesBy.get(poke.id) ?? []).sort((a, b) => a.slot - b.slot).map((r) => typeSlug.get(r.type_id)).filter(Boolean),
+      stats: (statsBy.get(poke.id) ?? []).filter((r) => Number(r.stat_id) <= 6).sort((a, b) => a.stat_id - b.stat_id).map((r) => Number(r.base_stat)),
+      abilities,
+      height: Number(poke.height) / 10,
+      weight: Number(poke.weight) / 10,
+      groups,
+    };
+    if (stone) {
+      mega.stone = { slug: stone.identifier, name: { it: nameIn(itemNames.get(stone.id), 'it', 'name'), en: nameIn(itemNames.get(stone.id), 'en', 'name') } };
+    } else if (poke.identifier === 'rayquaza-mega') {
+      // Rayquaza non usa una Megapietra: deve conoscere Ascesa del Drago
+      const move = csv.moves.find((m) => m.identifier === 'dragon-ascent');
+      const moveNames = csv.move_names.filter((n) => n.move_id === move?.id);
+      mega.move = { it: nameIn(moveNames, 'it', 'name'), en: nameIn(moveNames, 'en', 'name') };
+    }
+    if (!bySpecies.has(poke.species_id)) bySpecies.set(poke.species_id, []);
+    bySpecies.get(poke.species_id).push(mega);
+  }
+  const total = [...bySpecies.values()].flat();
+  console.log(`  Megaevoluzioni: ${total.length} (${total.filter((m) => !m.stone && !m.move).length} senza Megapietra).`);
+  return bySpecies;
 }
 
 /**

@@ -75,6 +75,29 @@ export interface Pokemon {
   chain: number;
   /** forma del corpo, come nella ricerca per forma del Pokédex */
   shape: string | null;
+  /** Megaevoluzioni, con i giochi in cui esistono */
+  megas?: Mega[];
+  /** solo per una forma Mega: l'id PokéAPI della forma, per lo sprite */
+  spriteId?: number;
+}
+
+export interface Mega {
+  /** id PokéAPI della forma (per sprite) */
+  id: number;
+  slug: string;
+  /** '' per una Mega sola, altrimenti 'x', 'y' o 'z' */
+  suffix: string;
+  name: Localized;
+  types: string[];
+  stats: number[];
+  abilities: AbilityRef[];
+  height: number;
+  weight: number;
+  /** gruppi di giochi in cui esiste */
+  groups: string[];
+  stone?: { slug: string; name: Localized };
+  /** mossa richiesta al posto della Megapietra (Rayquaza) */
+  move?: Localized;
 }
 
 export interface IndexEntry {

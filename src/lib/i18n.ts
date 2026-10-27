@@ -135,6 +135,12 @@ const it = {
   eggCycles: 'Schiusa',
   eggCyclesValue: (n: number) => `${n} cicli`,
 
+  // megaevoluzioni
+  showMega: (name: string) => `Mostra ${name}`,
+  megaHow: 'Megaevoluzione',
+  megaKnowing: (move: string) => `conoscendo ${move}`,
+  megaWith: (stone: string) => `con ${stone}`,
+
   // mosse
   movesTitle: 'Mosse',
   movesAside: 'Quelle che può imparare in questo gioco',
@@ -406,6 +412,12 @@ const en: Dictionary = {
   eggGroups: 'Egg groups',
   eggCycles: 'Hatching',
   eggCyclesValue: (n) => `${n} egg cycles`,
+
+  // Mega Evolutions
+  showMega: (name) => `Show ${name}`,
+  megaHow: 'Mega Evolution',
+  megaKnowing: (move) => `knowing ${move}`,
+  megaWith: (stone) => `with ${stone}`,
 
   // moves
   movesTitle: 'Moves',

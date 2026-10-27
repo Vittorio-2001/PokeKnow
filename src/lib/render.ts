@@ -3,6 +3,7 @@
 import {
   type Ability,
   type Lang,
+  type Mega,
   type Pokemon,
   TYPE_BY_SLUG,
   VERSIONS,
@@ -125,8 +126,8 @@ export function renderView(
     versionName,
     gen,
     theme: themeFor(game.group),
-    sprite: spriteUrl(pokemon.id, game.group),
-    spriteShiny: spriteUrl(pokemon.id, game.group, true),
+    sprite: spriteUrl(pokemon.spriteId ?? pokemon.id, game.group),
+    spriteShiny: spriteUrl(pokemon.spriteId ?? pokemon.id, game.group, true),
     slots: {
       flavor: renderFlavor(pokemon, versionSlug, versionName, lang),
       types: chips(types, lang, 'md'),
@@ -134,7 +135,7 @@ export function renderView(
       defense: renderDefense(types, gen, lang),
       offense: renderOffense(types, gen, lang),
       stats: renderStats(pokemon.statsByGen[gen] ?? [], pokemon.evsByGen?.[gen] ?? [], pokemon.id, lang),
-      chain: chain ? renderChain(chain, pokemon.id, version.slug, game.group, gen, game.order, lang) : '',
+      chain: chain ? renderChain(chain, pokemon.id, version.slug, game.group, gen, game.order, lang, pokemon.spriteId) : '',
       abilities: NO_ABILITIES.has(game.group)
         ? `<p class="muted">${esc(ui.noAbilitiesInGame(versionName))}</p>`
         : renderAbilities(pokemon.abilitiesByGen[gen] ?? [], abilities, lang),
@@ -333,10 +334,13 @@ function renderChain(
   gen: number,
   order: number,
   lang: Lang,
+  /** id della forma Mega mostrata, se c'è */
+  megaId?: number,
 ): string {
   const ui = t(lang);
   const trees = chainTree(members, gen, order);
-  const count = (nodes: ChainNode[]): number => nodes.reduce((n, node) => n + 1 + count(node.next), 0);
+  const megasOf = (m: ChainMember) => (m.megas ?? []).filter((mega) => mega.groups.includes(group));
+  const count = (nodes: ChainNode[]): number => nodes.reduce((n, node) => n + 1 + megasOf(node.member).length + count(node.next), 0);
   if (count(trees) <= 1) return `<p class="muted">${esc(ui.noEvolution)}</p>`;
   const typeName = (slug: string) => text(TYPE_BY_SLUG.get(slug)?.name, lang);
   const pixel = themeFor(group).pixel;
@@ -345,12 +349,13 @@ function renderChain(
     const m = n.member;
     const name = text(m.name, lang);
     const link = `${href(localePath(lang, `pokemon/${m.slug}/`))}?${GAME_PARAM[lang]}=${versionSlug}`;
-    const current = m.id === currentId;
+    const current = m.id === currentId && !megaId;
     const card = `<a class="evo__mon${current ? ' is-current' : ''}" href="${link}"${current ? ' aria-current="page"' : ''}>
       <img class="${pixel ? 'pixelated' : ''}" src="${spriteUrl(m.id, group)}" alt="" width="64" height="64" loading="lazy" />
       <span class="evo__name">${esc(name)}</span>
     </a>`;
-    const many = n.next.length > 3;
+    const megas = megasOf(m);
+    const many = n.next.length + megas.length > 3;
     const how = (child: ChainNode) =>
       `<span class="evo__how">${evoIcons(child.rules, lang)}<span class="evo__text">${esc(howOrUnknown(child, ui.evolvesSomehow))}</span></span>`;
     const step = (child: ChainNode) =>
@@ -358,8 +363,26 @@ function renderChain(
         ? `<li class="evo__step">${node(child)}${how(child)}</li>`
         : `<li class="evo__step">${how(child)}${node(child)}</li>`;
     // Con tante evoluzioni (Eevee) una sola freccia porta a una griglia, e ogni carta dice come ci si arriva.
-    const next = n.next.length
-      ? `${many ? '<span class="evo__arrow" aria-hidden="true"></span>' : ''}<ul class="evo__next${many ? ' evo__next--many' : ''}">${n.next.map(step).join('')}</ul>`
+    // Megaevoluzione: ultimo passo, con la Megapietra al posto della condizione. Sulla pagina del Pokémon
+    // la carta attiva la forma Mega; dalle altre pagine porta alla sua scheda con la Mega già attiva.
+    const megaStep = (mega: Mega) => {
+      const megaCurrent = megaId === mega.id;
+      const megaLink = `${link}&mega=${mega.slug}`;
+      const megaCard = `<a class="evo__mon evo__mon--mega${megaCurrent ? ' is-current' : ''}" href="${megaLink}" data-chain-mega="${m.id === currentId ? mega.slug : ''}">
+        <img src="${spriteUrl(mega.id, group)}" alt="" width="64" height="64" loading="lazy" />
+        <span class="evo__name">${esc(text(mega.name, lang))}</span>
+      </a>`;
+      const icon = mega.stone
+        ? `<img class="evo__icon pixelated" src="${ITEMS}/${mega.stone.slug}.png" alt="" width="30" height="30" loading="lazy" />`
+        : '';
+      const label = mega.stone ? ui.megaWith(text(mega.stone.name, lang)) : mega.move ? ui.megaKnowing(text(mega.move, lang)) : '';
+      const megaHow = `<span class="evo__how evo__how--mega"><span class="evo__icons">${icon}</span><span class="evo__text">${esc(label)}</span></span>`;
+      return many
+        ? `<li class="evo__step evo__step--mega">${megaCard}${megaHow}</li>`
+        : `<li class="evo__step evo__step--mega">${megaHow}${megaCard}</li>`;
+    };
+    const next = n.next.length || megas.length
+      ? `${many ? '<span class="evo__arrow" aria-hidden="true"></span>' : ''}<ul class="evo__next${many ? ' evo__next--many' : ''}">${n.next.map(step).join('')}${megas.map(megaStep).join('')}</ul>`
       : '';
     return `<div class="evo">${card}${next}</div>`;
   };

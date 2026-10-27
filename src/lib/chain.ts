@@ -1,6 +1,6 @@
 // Catena evolutiva: la famiglia del Pokémon come albero, filtrata sui Pokémon che esistono
 // nel gioco scelto e con il modo di evolversi valido in quel gioco.
-import type { Localized } from './data';
+import type { Localized, Mega } from './data';
 import { type Evolution, evolutionsFor } from './where';
 
 export interface ChainMember {
@@ -11,6 +11,8 @@ export interface ChainMember {
   /** da chi si evolve (null per il primo stadio) */
   from: number | null;
   rules: Evolution[];
+  /** Megaevoluzioni, con i giochi in cui esistono */
+  megas?: Mega[];
 }
 
 export interface ChainNode {

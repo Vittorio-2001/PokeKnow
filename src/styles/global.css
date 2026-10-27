@@ -301,6 +301,49 @@ h3 {
   border-color: var(--accent);
 }
 
+/* Pulsanti Mega, in basso a destra sul palco */
+.mega-buttons {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.mega-toggle {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 0.75rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--chip-radius);
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+.mega-toggle:hover,
+.mega-toggle[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+/* Megapietra accanto all'altezza e al peso */
+.facts__mega dd {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.mega-stone {
+  width: 30px;
+  height: 30px;
+  margin: -6px -2px -6px -6px;
+  flex: none;
+}
+
 /* Pulsante del verso, in basso a sinistra sul palco (lo shiny sta in alto a destra) */
 .cry-button {
   position: absolute;
@@ -1110,7 +1153,8 @@ h3 {
 
 .facts dl {
   display: flex;
-  gap: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
   margin: 0;
 }
 
@@ -1286,6 +1330,12 @@ h3 {
   padding-bottom: 0.25rem;
 }
 
+/* catena al centro della sezione; se è più larga dello schermo si scorre di lato senza tagli a sinistra */
+.chain > .evo {
+  width: max-content;
+  margin-inline: auto;
+}
+
 .evo {
   display: flex;
   align-items: center;
@@ -1376,6 +1426,17 @@ h3 {
   background:
     linear-gradient(var(--line), var(--line)) left calc(100% - 0.35rem) / calc(100% - 0.5rem) 2px no-repeat,
     linear-gradient(45deg, transparent 50%, var(--line) 50%) right calc(100% - 0.12rem) / 0.55rem 0.55rem no-repeat;
+}
+
+/* Megaevoluzione: freccia tratteggiata, perché la forma Mega è temporanea */
+.evo__how--mega {
+  background:
+    repeating-linear-gradient(90deg, var(--line) 0 5px, transparent 5px 9px) left calc(100% - 0.35rem) / calc(100% - 0.5rem) 2px no-repeat,
+    linear-gradient(45deg, transparent 50%, var(--line) 50%) right calc(100% - 0.12rem) / 0.55rem 0.55rem no-repeat;
+}
+
+.evo__next--many .evo__how--mega {
+  background: none;
 }
 
 /* Icone della condizione: oggetti dei giochi e icona dello scambio, sopra il testo */

@@ -20,6 +20,7 @@
 - **Search by shape**: like the in-game Pokédex, the home page filters by the 14 body shapes, with pixel pictograms drawn for PokéKnow.
 - **Catching and breeding**: catch rate with the chance of a Poké Ball at full HP, base friendship and experience, growth rate, gender ratio, egg groups and egg cycles.
 - **Where to find it**: for every game, a one-line summary (how many wild locations and from which level, gifts and in-game trades), **version exclusives** compared with the twin version (and whether the other version can get it by evolution or needs a trade), then the locations where the Pokémon appears with the method (grass, surfing, fishing, gifts, Wanderers…), levels, encounter rate and conditions such as time of day, weather, swarms or the GBA slot, plus how it evolves in that game.
+- **Mega Evolutions**: in the games where they exist (X and Y, Omega Ruby and Alpha Sapphire, Sun and Moon, Ultra Sun and Ultra Moon, Let's Go for the Kanto ones, and Legends: Z-A with its new Megas), a button on the sprite stage switches to the Mega form: sprite, name, types, matchups, stats, ability, height and weight change, and the Mega Stone is shown with its icon. Megas also appear at the end of the evolution chain, with a dashed arrow and the Mega Stone, and the active Mega is kept in the URL (`?mega=charizard-mega-x`).
 - **Learnable moves**: for every game, the moves learned by level up, TM and HM (TR in Sword and Shield), egg and tutor, each with the type, category, power, accuracy and PP it had in that game, a search box that filters every tab as you type, and a note when a TM, egg or tutor move is also learned by level up: Charm is Normal before X and Y, and in Gen III Shadow Ball is physical because the category still depended on the type. The default game is in the page; the others are loaded only when you switch game.
 - **Link previews**: sharing a Pokémon page on WhatsApp, Discord, Reddit or Telegram shows a card with that Pokémon in the style of its default game, rendered from the site's own CSS.
 - **Shiny sprites**: a toggle on the sprite stage shows the shiny version from the same era's sprite set, and the choice is remembered.
@@ -82,6 +83,7 @@ src/lib/typechart.ts             weaknesses, resistances and coverage per genera
 src/lib/where.ts                 encounters and how each Pokémon evolves
 src/lib/chain.ts                 evolution family as a tree, per game
 src/lib/stats.ts                 stat ranges and catch chance
+src/lib/forms.ts                 Mega Evolutions: where they exist and the Mega form of a page
 src/lib/moves.ts                 learnable moves and their values in each game
 src/lib/shapes.ts                body shapes and their pixel pictograms
 src/lib/render.ts                section HTML, shared by the build and the browser
@@ -107,13 +109,13 @@ tests/                           Vitest tests
 
 - **Italian Pokédex entries**: PokéAPI only has them from X and Y up to Sword and Shield. When a game has no entry in the page language, the site shows the entry from the nearest game in that language, says which game it comes from, and keeps the game's original text one click away.
 - **Scarlet and Violet** have few entries in PokéAPI, and **Legends: Z-A** none yet. These games show the nearest available entry, clearly labeled with its source game.
-- Alternate forms (regional variants, Mega Evolutions, Gigantamax) are not included yet: only the default form.
+- Regional variants, Gigantamax and Primal Reversion are not included yet. Mega Evolutions are, but only for the default form (no Mega for female Meowstic or for the other Tatsugiri forms). In Legends: Z-A every returning Mega is assumed to be available, since PokéAPI does not list them per game.
 - **Encounter locations** are missing for Brilliant Diamond and Shining Pearl, Legends: Arceus, Scarlet and Violet, and Legends: Z-A, and partial for Omega Ruby and Alpha Sapphire.
 - **Moves for Legends: Z-A** are not in PokéAPI yet: the page says so. Many location names have no Italian translation in PokéAPI: the site uses the English name, turning "Route 12" into "Percorso 12".
 
 ## Roadmap
 
-1. Regional forms and Mega Evolutions.
+1. Regional forms.
 2. More languages.
 3. A custom domain.
 
