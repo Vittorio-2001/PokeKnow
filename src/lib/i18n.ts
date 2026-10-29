@@ -103,6 +103,7 @@ const it = {
   madeBy: 'Un progetto di',
   sourceCode: 'Codice sorgente su GitHub',
   footerFootprints: 'Impronte',
+  footerBattle: 'Sfondi di lotta di terza e quarta generazione',
   footerCollectedBy: 'raccolta di',
   cry: 'Verso',
   playCry: (name: string) => `Ascolta il verso di ${name}`,
@@ -280,6 +281,8 @@ const it = {
   // sprite shiny e tema della home
   shiny: 'Shiny',
   shinyLabel: 'Mostra lo sprite shiny',
+  battle: 'Lotta',
+  battleLabel: 'Mostra come appare in lotta',
   toDark: 'Passa al tema scuro',
   toLight: 'Passa al tema chiaro',
 
@@ -383,6 +386,7 @@ const en: Dictionary = {
   madeBy: 'A project by',
   sourceCode: 'Source code on GitHub',
   footerFootprints: 'Footprints',
+  footerBattle: 'Gen III and IV battle backgrounds',
   footerCollectedBy: 'collected by',
   cry: 'Cry',
   playCry: (name) => `Play ${name}’s cry`,
@@ -555,6 +559,8 @@ const en: Dictionary = {
 
   shiny: 'Shiny',
   shinyLabel: 'Show the shiny sprite',
+  battle: 'Battle',
+  battleLabel: 'Show how it looks in battle',
   toDark: 'Switch to dark theme',
   toLight: 'Switch to light theme',
 

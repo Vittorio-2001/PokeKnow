@@ -353,6 +353,16 @@
   right: 0;
 }
 
+:root[data-theme='alola'] .battle-toggle {
+  top: 0;
+  left: 0;
+}
+
+:root[data-theme='alola'] .battle {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
 :root[data-theme='alola'] .cry-button {
   left: 0;
   bottom: 0;
@@ -598,7 +608,7 @@
 }
 
 /* Nei temi con sprite 3D niente pixel: il render resta liscio. */
-:root[data-sprite='smooth'] .stage img {
+:root[data-sprite='smooth'] .stage > img {
   image-rendering: auto;
 }
 

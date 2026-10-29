@@ -118,6 +118,15 @@ const themeByVersion = Object.fromEntries(
 
     <div class="stage-row">
       <div class="stage">
+        <button class="battle-toggle" type="button" aria-pressed="false" title={ui.battleLabel} data-battle-toggle>
+          {ui.battle}
+        </button>
+        <div class="battle" data-battle hidden>
+          <span class="battle__pad battle__pad--foe"></span>
+          <span class="battle__pad battle__pad--ally"></span>
+          <img class="battle__foe" alt="" crossorigin="anonymous" data-battle-foe />
+          <img class="battle__ally" alt="" crossorigin="anonymous" data-battle-ally />
+        </div>
         <button class="shiny-toggle" type="button" aria-pressed="false" title={ui.shinyLabel} data-shiny-toggle>
           <span aria-hidden="true">✦</span> {ui.shiny}
         </button>
@@ -176,17 +185,12 @@ const themeByVersion = Object.fromEntries(
               pokemon.shape && (
                 <div class="facts__shape">
                   <dt>{ui.shape}</dt>
-                  <dd>
+                  <dd title={ui.shapes[pokemon.shape]}>
                     <Fragment set:html={shapeIcon(pokemon.shape, ui.shapes[pokemon.shape] ?? pokemon.shape)} />
-                    <span class="facts__shape-name">{ui.shapes[pokemon.shape]}</span>
                   </dd>
                 </div>
               )
             }
-            <div class="facts__mega" data-mega-how hidden>
-              <dt>{ui.megaHow}</dt>
-              <dd></dd>
-            </div>
             <div>
               <dt>{ui.debut}</dt>
               <dd>Gen {roman(pokemon.gen)}</dd>
@@ -347,10 +351,10 @@ const themeByVersion = Object.fromEntries(
   import type { WhereData } from '../lib/where';
   import type { ChainMember } from '../lib/chain';
   import { GAME_PARAM, isLang, t } from '../lib/i18n';
-  import { cryUrl, defaultSpriteUrl, renderView } from '../lib/render';
-  import { placeSprite } from '../lib/sprite-anchor';
+  import { BATTLE_SCENES, battleSprites, cryUrl, defaultSpriteUrl, renderView } from '../lib/render';
+  import { placeInBattle, placeSprite } from '../lib/sprite-anchor';
   import { type MovesData, filterMoves, renderMoves } from '../lib/moves';
-  import { asMega, megasIn, renderMegaButtons, renderMegaHow } from '../lib/forms';
+  import { asMega, megasIn, renderMegaButtons } from '../lib/forms';
   import { href } from '../lib/url';
 
   // Il gioco scelto si ricorda tra le lingue: stessa chiave, parametro dell'URL tradotto.
@@ -369,7 +373,7 @@ const themeByVersion = Object.fromEntries(
 
   const root = document.documentElement;
   const select = document.querySelector<HTMLSelectElement>('#game')!;
-  const sprite = document.querySelector<HTMLImageElement>('.stage img')!;
+  const sprite = document.querySelector<HTMLImageElement>('[data-stage-sprite]')!;
   const dialog = document.querySelector<HTMLElement>('[data-dialog]')!;
   const versionLabel = document.querySelector<HTMLElement>('[data-version-name]')!;
   const stage = document.querySelector<HTMLElement>('.stage')!;
@@ -455,7 +459,6 @@ const themeByVersion = Object.fromEntries(
   const nameEl = document.querySelector<HTMLElement>('[data-name]')!;
   const heightEl = document.querySelector<HTMLElement>('[data-height]')!;
   const weightEl = document.querySelector<HTMLElement>('[data-weight]')!;
-  const megaHow = document.querySelector<HTMLElement>('[data-mega-how]')!;
   const locale = lang === 'it' ? 'it-IT' : 'en-US';
 
   function show(slug: string, animate: boolean) {
@@ -473,8 +476,6 @@ const themeByVersion = Object.fromEntries(
     nameEl.textContent = shown;
     heightEl.textContent = `${(mega?.height ?? pokemon.height).toLocaleString(locale)} m`;
     weightEl.textContent = `${(mega?.weight ?? pokemon.weight).toLocaleString(locale)} kg`;
-    megaHow.hidden = !mega;
-    megaHow.querySelector('dd')!.innerHTML = mega ? renderMegaHow(mega, lang) : '';
 
     const view = renderView(mega ? asMega(pokemon, mega) : pokemon, abilities, slug, lang, where, chain);
     for (const [key, html] of Object.entries(view.slots)) {
@@ -491,6 +492,9 @@ const themeByVersion = Object.fromEntries(
     current = view;
     currentGen = view.gen;
     setSprite();
+    currentGroup = game.group;
+    currentSpriteId = mega?.id ?? pokemon.id;
+    setBattle();
     select.value = slug;
     updateLangLinks(slug);
     showMoves(slug, view.versionName);
@@ -634,12 +638,73 @@ const themeByVersion = Object.fromEntries(
     else sprite.src = wanted;
   }
 
+  // Scena di lotta: lo stesso Pokémon di fronte (avversario) e di spalle (il tuo), con gli sprite del gioco.
+  const battleButton = document.querySelector<HTMLButtonElement>('[data-battle-toggle]')!;
+  const battleBox = document.querySelector<HTMLElement>('[data-battle]')!;
+  const foe = document.querySelector<HTMLImageElement>('[data-battle-foe]')!;
+  const ally = document.querySelector<HTMLImageElement>('[data-battle-ally]')!;
+  let battle = false;
+  let currentGroup = VERSION_BY_SLUG.get(defaultVersion)!.game.group;
+  let currentSpriteId = pokemon.id;
+
+  function setBattle() {
+    battleButton.setAttribute('aria-pressed', String(battle));
+    battleBox.hidden = !battle;
+    stage.classList.toggle('is-battle', battle);
+    if (!battle) return;
+    const b = battleSprites(currentSpriteId, currentGroup, shiny);
+    const pixel = root.dataset.sprite === 'pixel';
+    for (const [img, src, fallback] of [[foe, b.front, b.frontFallback], [ally, b.back, b.backFallback]] as const) {
+      img.classList.toggle('pixelated', pixel);
+      img.onerror = () => {
+        img.onerror = null;
+        img.src = fallback;
+      };
+      if (img.src !== src) {
+        img.classList.remove('is-placed');
+        img.src = src;
+      }
+    }
+    placeBattle();
+  }
+
+  // Posizioni come nei giochi: l'avversario sulla sua piattaforma in alto a destra; il tuo Pokémon
+  // nei giochi pixel (GBA, DS, Unima) tagliato dal bordo in basso, nei giochi 3D sulla sua piattaforma.
+  function placeBattle() {
+    if (!battle) return;
+    const pixel = root.dataset.sprite === 'pixel';
+    battleBox.classList.toggle('battle--pixel', pixel);
+    // Giochi con lo sfondo di lotta originale: la scena tiene le proporzioni del gioco e gli sprite
+    // si ingrandiscono quanto lo sfondo, così stanno sulle piattaforme disegnate.
+    const scene = BATTLE_SCENES[currentGroup];
+    battleBox.classList.toggle('battle--scene', !!scene);
+    if (scene) {
+      battleBox.style.backgroundImage = `url(${href(scene.file)})`;
+      battleBox.style.height = `${stage.clientWidth / scene.ratio}px`;
+      const scale = battleBox.clientWidth / scene.native;
+      void placeInBattle(foe, battleBox, { cx: scene.foe[0], feet: scene.foe[1], size: 0, pixel, scale });
+      void placeInBattle(ally, battleBox, { cx: scene.ally[0], feet: scene.ally[1], size: 0, pixel, scale });
+      return;
+    }
+    battleBox.style.backgroundImage = '';
+    battleBox.style.height = '';
+    void placeInBattle(foe, battleBox, { cx: 0.71, feet: 0.45, size: pixel ? 0.3 : 0.3, pixel });
+    void placeInBattle(ally, battleBox, pixel ? { cx: 0.3, feet: 1.0, size: 0.38, pixel } : { cx: 0.3, feet: 0.9, size: 0.38, pixel });
+  }
+  new ResizeObserver(() => placeBattle()).observe(stage);
+
+  battleButton.addEventListener('click', () => {
+    battle = !battle;
+    setBattle();
+  });
+
   shinyButton.addEventListener('click', () => {
     shiny = !shiny;
     try {
       localStorage.setItem(SHINY_KEY, shiny ? '1' : '0');
     } catch {}
     setSprite();
+    setBattle();
   });
 
   // Allinea lo sprite alla piattaforma (o al centro) appena l'immagine è pronta.

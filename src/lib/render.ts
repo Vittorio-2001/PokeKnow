@@ -48,6 +48,61 @@ export function spriteUrl(id: number, group?: string, shiny = false): string {
   return themeFor(group).pixel ? `${SPRITES}/${s}${id}.png` : `${SPRITES}/other/home/${s}${id}.png`;
 }
 
+// Sprite di lotta: lo stesso set del gioco di fronte (avversario) e di spalle (il tuo Pokémon).
+// Sole e Luna usano il set di Ultrasole e Ultraluna; Leggende Arceus non ha un set completo.
+const BATTLE_SET: Record<string, [string, string]> = {
+  'ruby-sapphire': ['versions/generation-iii/ruby-sapphire', 'png'],
+  emerald: ['versions/generation-iii/emerald', 'png'],
+  'firered-leafgreen': ['versions/generation-iii/firered-leafgreen', 'png'],
+  'diamond-pearl': ['versions/generation-iv/diamond-pearl', 'png'],
+  platinum: ['versions/generation-iv/platinum', 'png'],
+  'heartgold-soulsilver': ['versions/generation-iv/heartgold-soulsilver', 'png'],
+  'black-white': ['versions/generation-v/black-white/animated', 'gif'],
+  'black-2-white-2': ['versions/generation-v/black-white/animated', 'gif'],
+  'x-y': ['versions/generation-vi/x-y', 'png'],
+  'omega-ruby-alpha-sapphire': ['versions/generation-vi/omega-ruby-alpha-sapphire', 'png'],
+  'sun-moon': ['versions/generation-vii/ultra-sun-ultra-moon', 'gif'],
+  'ultra-sun-ultra-moon': ['versions/generation-vii/ultra-sun-ultra-moon', 'gif'],
+  'lets-go-pikachu-lets-go-eevee': ['versions/generation-vii/lets-go-pikachu-lets-go-eevee', 'gif'],
+  'sword-shield': ['versions/generation-viii/sword-shield', 'webp'],
+  'brilliant-diamond-shining-pearl': ['versions/generation-viii/brilliant-diamond-shining-pearl', 'webp'],
+  'scarlet-violet': ['versions/generation-ix/scarlet-violet', 'webp'],
+  'legends-za': ['versions/generation-ix/legends-za', 'webp'],
+};
+
+// Sfondi di lotta originali (estratti dai giochi, via Pokémon Showdown), con il punto dove poggiano
+// i piedi dell'avversario e dove viene tagliato il tuo Pokémon, in frazioni della scena.
+// `native` è la larghezza della scena nel gioco: gli sprite si ingrandiscono come lo sfondo.
+export interface BattleScene {
+  file: string;
+  ratio: number;
+  native: number;
+  foe: [number, number];
+  ally: [number, number];
+}
+const GEN3_SCENE: BattleScene = { file: 'battle/gen3.png', ratio: 425 / 290, native: 240, foe: [0.755, 0.6], ally: [0.25, 1] };
+const GEN4_SCENE: BattleScene = { file: 'battle/gen4.png', ratio: 437 / 292, native: 256, foe: [0.75, 0.55], ally: [0.24, 1] };
+export const BATTLE_SCENES: Record<string, BattleScene> = {
+  'ruby-sapphire': GEN3_SCENE,
+  emerald: GEN3_SCENE,
+  'firered-leafgreen': GEN3_SCENE,
+  'diamond-pearl': GEN4_SCENE,
+  platinum: GEN4_SCENE,
+  'heartgold-soulsilver': GEN4_SCENE,
+};
+
+/** Sprite per la scena di lotta: davanti e di spalle, con i ripieghi se nel set del gioco mancano. */
+export function battleSprites(id: number, group: string, shiny = false) {
+  const s = shiny ? 'shiny/' : '';
+  const set = BATTLE_SET[group];
+  return {
+    front: set ? `${SPRITES}/${set[0]}/${s}${id}.${set[1]}` : spriteUrl(id, group, shiny),
+    back: set ? `${SPRITES}/${set[0]}/back/${s}${id}.${set[1]}` : `${SPRITES}/other/showdown/back/${s}${id}.gif`,
+    frontFallback: spriteUrl(id, group, shiny),
+    backFallback: `${SPRITES}/other/showdown/back/${s}${id}.gif`,
+  };
+}
+
 const CRIES = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon';
 
 /**

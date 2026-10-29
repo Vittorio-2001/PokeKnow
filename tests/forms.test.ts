@@ -80,3 +80,14 @@ describe('Mega nella catena evolutiva', () => {
     expect(html).not.toContain('Mega');
   });
 });
+
+describe('scena di lotta', () => {
+  it('usa gli sprite di lotta del gioco, di fronte e di spalle', async () => {
+    const { battleSprites } = await import('../src/lib/render');
+    const em = battleSprites(6, 'emerald');
+    expect(em.front).toContain('generation-iii/emerald/6.png');
+    expect(em.back).toContain('generation-iii/emerald/back/6.png');
+    expect(battleSprites(6, 'sun-moon', true).back).toContain('ultra-sun-ultra-moon/back/shiny/6.gif');
+    expect(battleSprites(6, 'legends-arceus').back).toContain('showdown/back/6.gif');
+  });
+});
