@@ -158,20 +158,6 @@ const themeByVersion = Object.fromEntries(
 
         <div class="facts">
           <div data-slot="types" set:html={view.slots.types} />
-          {
-            footprint && (
-              <svg
-                class="footprint"
-                viewBox="0 0 16 16"
-                role="img"
-                aria-label={`${ui.footprint}: ${name}`}
-                shape-rendering="crispEdges"
-              >
-                <title>{ui.footprint}</title>
-                <path d={footprint} fill="currentColor" />
-              </svg>
-            )
-          }
           <dl>
             <div>
               <dt>{ui.height}</dt>
@@ -187,6 +173,25 @@ const themeByVersion = Object.fromEntries(
                   <dt>{ui.shape}</dt>
                   <dd title={ui.shapes[pokemon.shape]}>
                     <Fragment set:html={shapeIcon(pokemon.shape, ui.shapes[pokemon.shape] ?? pokemon.shape)} />
+                  </dd>
+                </div>
+              )
+            }
+            {
+              footprint && (
+                <div class="facts__footprint">
+                  <dt>{ui.footprint}</dt>
+                  <dd>
+                    <svg
+                      class="footprint"
+                      viewBox="0 0 16 16"
+                      role="img"
+                      aria-label={`${ui.footprint}: ${name}`}
+                      shape-rendering="crispEdges"
+                    >
+                      <title>{ui.footprint}</title>
+                      <path d={footprint} fill="currentColor" />
+                    </svg>
                   </dd>
                 </div>
               )

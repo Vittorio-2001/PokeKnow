@@ -533,10 +533,15 @@ h3 {
   margin-top: 1.25rem;
 }
 
-/* Impronta: 16×16 pixel come nei giochi, ingrandita senza sfocature */
+/* Impronta: 16×16 pixel come nei giochi, ingrandita senza sfocature, alta come il pittogramma della forma */
+.facts__footprint dd {
+  display: flex;
+  justify-content: center;
+}
+
 .footprint {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
   color: var(--ink);
   opacity: 0.85;
 }
