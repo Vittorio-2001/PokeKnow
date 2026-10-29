@@ -1,0 +1,55 @@
+<!-- Estratto dalla pagina "Gengar" di Pokémon Central (https://wiki.pokemoncentral.it/Gengar), CC BY-NC-SA, usato con il loro permesso. Solo per i test. -->
+===Voci Pokédex===
+====Gengar====
+{{Dex
+|gen=1
+|rossobludex=Nelle notti di luna piena ama mimare le ombre della gente e deridere il loro terrore.
+|giallodex=Un alito gelido annuncia l'arrivo di GENGAR. Attacca le vittime con orribili maledizioni.
+|orodex=Assorbe calore dall'ambiente. Se si sente un brivido di gelo improvviso, è senz'altro apparso un GENGAR.
+|argentodex=Per sottrarre vita alla vittima si nasconde nella sua ombra e attende in silenzio il momento opportuno.
+|cristallodex=Di notte si cela nell'ombra delle vittime per assorbirne il calore, provocando loro un tremito.
+|rzdex=Talvolta nelle notti buie, può accadere che un passante sia improvvisamente assalito dalla propria ombra. È opera di GENGAR, che usa avvicinarsi fingendosi un'ombra.
+|smeraldodex=Talvolta nelle notti buie, può accadere che un passante sia superato dalla propria ombra. È opera di GENGAR, che si finge la sua sagoma scura.
+|rossofuocodex=Si dice che emerga dall'oscurità per sottrarre la vita di chi si è perso tra le montagne.
+|verdefogliadex=Se in una notte di luna piena si scorgono ombre che danzano e ridono, si tratta di GENGAR.
+|diamantedex=Si nasconde nell'ombra. Pare che nei luoghi in cui GENGAR si cela, la temperatura si abbassi di 5°C.
+|perladex=Celandosi negli angoli ombrosi delle stanze, aspetta l’opportunità di sottrarre vitalità alle prede.
+|platinodex=Si aggira nel buio con lo sguardo perfido e si diverte a lanciare maledizioni.
+|heartgolddex=Assorbe calore dall'ambiente. Se si sente un brivido di gelo improvviso, è senz'altro apparso un GENGAR.
+|soulsilverdex=Per sottrarre energia alla vittima si nasconde nella sua ombra e attende in silenzio il momento opportuno.
+|nbn2b2dex=Si aggira nel buio con lo sguardo perfido e si diverte a lanciare maledizioni.
+|xdex=Si nasconde nell'ombra. Pare che nei luoghi in cui Gengar si cela, la temperatura si abbassi di 5°C.
+|ydex=Di notte si cela nell'ombra delle vittime per assorbirne il calore, provocando loro un gemito.
+|rozadex=Talvolta, nelle notti buie, può accadere che un passante sia improvvisamente assalito dalla propria ombra. È opera di Gengar, che usa avvicinarsi fingendosi un'ombra.
+|soledex=Se all'improvviso si prova un brivido gelido, è Gengar che si avvicina. Fuggire è impossibile, bisogna rassegnarsi.
+|lunadex=Si dice che piombi sugli esseri umani per impossessarsi del loro spirito affinché gli faccia compagnia.
+|ultrasoledex=I genitori di tutto il mondo ammoniscono i bambini dicendo loro che, se non fanno i bravi, arriverà Gengar!
+|ultralunadex=Neanche casa propria è un luogo sicuro: Gengar si cela negli angoli bui pronto a impossessarsi dello spirito vitale delle sue prede.
+|lgpedex=Un brivido di freddo improvviso significa che Gengar è vicino. Meglio stare attenti, perché si rischia di essere colpiti da una maledizione.
+|spadadex=Se in una notte di luna piena le ombre iniziano a muoversi e a ridere, è senza dubbio opera di Gengar.
+|scudodex=Si dice che emerga dall’oscurità per sottrarre la vita di chi si è perso tra le montagne.
+|diamantelucentedex=Si nasconde nell'ombra. Pare che nei luoghi in cui Gengar si cela, la temperatura si abbassi di 5 ºC.
+|perlasplendentedex=Si cela negli angoli bui delle stanze e aspetta l'opportunità di sottrarre vitalità alle prede.
+|lpadex=Si impossessa dell'ombra delle sue vittime per carpirne la vita. Se la tua ombra ride solitaria d'improvviso, procurati tosto un talismano purificatore.
+|scarlattodex=Per sottrarre energia alla vittima si nasconde nella sua ombra e attende in silenzio il momento opportuno.
+|violettodex=Di notte si cela nell’ombra delle persone per assorbirne il calore poco a poco, provocando loro tremiti irrefrenabili.
+|lpzadex=Si nasconde nell'ombra. Pare che, nelle stanze in cui Gengar si cela, la temperatura si abbassi di 5 °C.
+}}
+
+====MegaGengar====
+{{Dex
+|gen=7|forma=M|exist=yes
+|soledex=Si dice che i Gengar riescano a instaurare un rapporto normale solo con coloro che hanno designato come loro prede.
+|lunadex=Si è risvegliato grazie alla megaevoluzione. Si nasconde in una dimensione parallela aspettando il momento giusto per attaccare.
+|ultrasoledex=Vuole impossessarsi dello spirito di qualsiasi essere vivente. Tenta di scagliare maledizioni persino contro il suo Allenatore.
+|ultralunadex=Grazie alla megaevoluzione ha ottenuto l’accesso a un’altra dimensione. Il suo corpo è pervaso da un sinistro potere.
+|lgpedex=Può attraversare dimensioni parallele per arrivare ovunque. Una volta le sue zampe sono spuntate da una parete, creando il panico tra gli astanti.
+|lpzadex=Può attraversare dimensioni parallele per arrivare ovunque. Una volta le sue zampe sono spuntate da una parete, creando il panico tra gli astanti.
+}}
+
+====Forma Gigamax====
+{{Dex
+|gen=8|forma=Gi
+|spadadex=Trabocca di energia negativa. Si dice che l’enorme bocca sia un portale che conduce all’aldilà.
+|scudodex=Tende trappole mortali. Se ci si trova davanti alla sua bocca, si sentirà la voce di una persona cara che chiama.
+}}

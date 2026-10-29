@@ -259,7 +259,12 @@ function renderFlavor(pokemon: Pokemon, versionSlug: string, versionName: string
     return `<p class="dialog__text dialog__text--empty">${esc(ui.noFlavor(versionName))}</p>`;
   }
   const body = pokemon.flavor[choice.version][choice.lang]!;
-  const text_ = `<p class="dialog__text" lang="${choice.lang}">${esc(body)}</p>`;
+  // testo italiano preso da Pokémon Central: link alla loro pagina, come da accordo
+  const fromPc = choice.lang === 'it' && pokemon.pc && pokemon.pcFlavor?.includes(choice.version);
+  const credit = fromPc
+    ? `<p class="dialog__note dialog__credit">${esc(ui.flavorCredit)} <a href="${esc(pokemon.pc!)}" target="_blank" rel="noopener">Pokémon Central</a></p>`
+    : '';
+  const text_ = `<p class="dialog__text" lang="${choice.lang}">${esc(body)}</p>${credit}`;
   const sourceName = text(VERSION_BY_SLUG.get(choice.version)?.name, lang);
 
   switch (choice.kind) {

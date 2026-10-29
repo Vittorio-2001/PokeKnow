@@ -1798,3 +1798,9 @@ svg.evo__icon {
     animation: none;
   }
 }
+
+/* attribuzione delle voci prese da Pokémon Central */
+.dialog__credit a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}

@@ -77,6 +77,10 @@ export interface Pokemon {
   shape: string | null;
   /** Megaevoluzioni, con i giochi in cui esistono */
   megas?: Mega[];
+  /** versioni la cui voce italiana viene da Pokémon Central */
+  pcFlavor?: string[];
+  /** link alla pagina di Pokémon Central, per l'attribuzione */
+  pc?: string;
   /** solo per una forma Mega: l'id PokéAPI della forma, per lo sprite */
   spriteId?: number;
 }

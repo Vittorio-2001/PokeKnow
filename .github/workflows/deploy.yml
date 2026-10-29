@@ -43,6 +43,12 @@ jobs:
           path: .cache/csv
           key: pokeapi-csv-${{ steps.week.outputs.n }}
           restore-keys: pokeapi-csv-
+      # Pagine di Pokémon Central (voci del Pokédex in italiano): stessa regola, si aggiornano ogni settimana.
+      - uses: actions/cache@v6
+        with:
+          path: .cache/pokemoncentral
+          key: pokemoncentral-${{ steps.week.outputs.n }}
+          restore-keys: pokemoncentral-
 
       - run: npm ci
       - run: npm test

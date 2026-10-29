@@ -54,6 +54,7 @@ const it = {
   // sezioni che cambiano con il gioco
   rulesOf: (g: string) => `Regole della Generazione ${g}`,
   noFlavor: (game: string) => `In ${game} non c’è ancora una voce del Pokédex per questo Pokémon nei dati che usiamo.`,
+  flavorCredit: 'Voce in italiano da',
   flavorOtherLang: 'Testo originale in inglese: il gioco non ha una traduzione italiana di questa voce.',
   flavorFromGame: (source: string, game: string) => `Voce di ${source}: in ${game} non è disponibile in italiano.`,
   flavorNearest: (source: string, game: string) => `In ${game} non c’è ancora una voce: questa viene da ${source}.`,
@@ -104,6 +105,7 @@ const it = {
   sourceCode: 'Codice sorgente su GitHub',
   footerFootprints: 'Impronte',
   footerBattle: 'Sfondi di lotta di terza e quarta generazione',
+  footerItalianDex: 'Voci del Pokédex in italiano mancanti in PokéAPI',
   footerCollectedBy: 'raccolta di',
   cry: 'Verso',
   playCry: (name: string) => `Ascolta il verso di ${name}`,
@@ -338,6 +340,7 @@ const en: Dictionary = {
 
   rulesOf: (g) => `Generation ${g} rules`,
   noFlavor: (game) => `Our data has no ${game} Pokédex entry for this Pokémon yet.`,
+  flavorCredit: 'Italian entry from',
   flavorOtherLang: 'Shown in Italian: no English entry is available for this game.',
   flavorFromGame: (source, game) => `Entry from ${source}: ${game} has no English entry.`,
   flavorNearest: (source, game) => `${game} has no entry yet: this one is from ${source}.`,
@@ -387,6 +390,7 @@ const en: Dictionary = {
   sourceCode: 'Source code on GitHub',
   footerFootprints: 'Footprints',
   footerBattle: 'Gen III and IV battle backgrounds',
+  footerItalianDex: 'Italian Pokédex entries missing from PokéAPI',
   footerCollectedBy: 'collected by',
   cry: 'Cry',
   playCry: (name) => `Play ${name}’s cry`,

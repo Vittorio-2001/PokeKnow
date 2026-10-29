@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'csv-parse/sync';
+import { loadPages, pageUrl, parseDex } from './pokemoncentral.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = join(ROOT, '.cache', 'csv');
@@ -370,6 +371,8 @@ async function main() {
     });
   }
 
+  await addPokemonCentral(pokemon, games);
+
   const abilities = {};
   for (const id of usedAbilities) {
     const d = abilityDesc.get(id) ?? {};
@@ -387,6 +390,34 @@ async function main() {
   await buildWhereData(csv, games, typeSlug);
   await buildLearnsets(csv, games, typeSlug);
   console.log(`Fatto: ${pokemon.length} Pokémon, ${games.length} giochi, ${types.length} tipi.`);
+}
+
+/**
+ * Voci del Pokédex in italiano da Pokémon Central per i giochi in cui PokéAPI non le ha.
+ * Le versioni riempite così finiscono in `pcFlavor`, e `pc` è il link alla pagina, per l'attribuzione.
+ */
+async function addPokemonCentral(pokemon, games) {
+  const groupOf = new Map(games.flatMap((g) => g.versions.map((v) => [v.slug, g.group])));
+  const titleOf = (p) => p.name.it ?? p.name.en;
+  const cache = await loadPages(pokemon.map(titleOf), { cacheDir: join(ROOT, '.cache', 'pokemoncentral'), refresh: REFRESH });
+  let filled = 0;
+  const unknown = new Set();
+  for (const p of pokemon) {
+    const page = cache[titleOf(p)];
+    if (!page?.text) continue;
+    const { entries, unknown: u } = parseDex(page.text, titleOf(p));
+    u.forEach((k) => unknown.add(k));
+    for (const [version, text] of Object.entries(entries)) {
+      const group = groupOf.get(version);
+      if (!group || !(group in p.games) || p.flavor[version]?.it) continue;
+      (p.flavor[version] ??= {}).it = text;
+      (p.pcFlavor ??= []).push(version);
+      filled++;
+    }
+    if (p.pcFlavor) p.pc = pageUrl(page.title);
+  }
+  const pages = Object.values(cache).filter((x) => x?.text).length;
+  console.log(`  Pokémon Central: ${pages} pagine, ${filled} voci italiane aggiunte.${unknown.size ? ` Chiavi sconosciute: ${[...unknown].join(', ')}` : ''}`);
 }
 
 /**
